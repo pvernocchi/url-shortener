@@ -20,6 +20,9 @@ class AdminController
     public function dashboard(Request $req, Response $res): void
     {
         App::requireAuth();
+        if (!App::isAdmin()) {
+            $res->redirect('/admin/links/create');
+        }
 
         $linkModel  = new Link();
         $clickModel = new ClickEvent();

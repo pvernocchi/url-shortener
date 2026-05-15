@@ -13,6 +13,8 @@ use App\Core\Session;
 use App\Core\View;
 use App\Models\ClickEvent;
 use App\Models\Link;
+use App\Models\Setting;
+use App\Services\Mailer;
 use App\Services\SlugGenerator;
 use App\Services\UrlValidator;
 
@@ -21,19 +23,14 @@ class LinkController
     public function index(Request $req, Response $res): void
     {
         App::requireAuth();
+        $this->ensureAdminCanManageExistingLinks($res);
 
         $linkModel = new Link();
         $page      = max(1, (int)$req->get('page', 1));
         $perPage   = 20;
 
-        if (App::isAdmin()) {
-            $links = $linkModel->all($page, $perPage);
-            $total = $linkModel->countAll();
-        } else {
-            $userId = App::currentUserId();
-            $links  = $linkModel->allByOwner($userId, $page, $perPage);
-            $total  = $linkModel->countByOwner($userId);
-        }
+        $links = $linkModel->all($page, $perPage);
+        $total = $linkModel->countAll();
 
         $totalPages = (int)ceil($total / $perPage);
 
@@ -132,13 +129,34 @@ class LinkController
         $rateLimiter->increment('create_link', $req->ip());
 
         $baseUrl = rtrim(Config::get('app.url', ''), '/');
-        Session::flash('success', "Link created! Short URL: $baseUrl/$shortCode");
+        $shortUrl = "$baseUrl/$shortCode";
+        Session::flash('success', "Link created! Short URL: $shortUrl");
+
+        $userEmail = (string)Session::get('user_email', '');
+        if ($userEmail !== '') {
+            $safeShortUrl = $this->sanitizeForEmailBody($shortUrl);
+            $safeOriginalUrl = $this->sanitizeForEmailBody($originalUrl);
+            try {
+                $mailer = Mailer::fromSettings(new Setting());
+                $mailer->send(
+                    $userEmail,
+                    'Your new shortened URL',
+                    "Your shortened URL is ready:\r\n\r\n"
+                    . "Short URL: {$safeShortUrl}\r\n"
+                    . "Original URL: {$safeOriginalUrl}\r\n"
+                );
+            } catch (\Throwable $e) {
+                Session::flash('error', 'Link created, but confirmation email could not be sent: ' . $e->getMessage());
+            }
+        }
+
         $res->redirect('/admin/links');
     }
 
     public function edit(Request $req, Response $res, array $params): void
     {
         App::requireAuth();
+        $this->ensureAdminCanManageExistingLinks($res);
         $link = $this->findOwnedLink((int)($params['id'] ?? 0));
 
         if (!$link) {
@@ -155,6 +173,7 @@ class LinkController
     public function update(Request $req, Response $res, array $params): void
     {
         App::requireAuth();
+        $this->ensureAdminCanManageExistingLinks($res);
 
         if (!Csrf::verify((string)$req->post('_csrf_token'))) {
             Session::flash('error', 'Invalid CSRF token.');
@@ -203,6 +222,7 @@ class LinkController
     public function delete(Request $req, Response $res, array $params): void
     {
         App::requireAuth();
+        $this->ensureAdminCanManageExistingLinks($res);
 
         if (!Csrf::verify((string)$req->post('_csrf_token'))) {
             Session::flash('error', 'Invalid CSRF token.');
@@ -224,6 +244,7 @@ class LinkController
     public function toggle(Request $req, Response $res, array $params): void
     {
         App::requireAuth();
+        $this->ensureAdminCanManageExistingLinks($res);
 
         if (!Csrf::verify((string)$req->post('_csrf_token'))) {
             $res->redirect('/admin/links');
@@ -244,6 +265,7 @@ class LinkController
     public function analytics(Request $req, Response $res, array $params): void
     {
         App::requireAuth();
+        $this->ensureAdminCanManageExistingLinks($res);
 
         $link = $this->findOwnedLink((int)($params['id'] ?? 0));
         if (!$link) {
@@ -290,5 +312,19 @@ class LinkController
         }
 
         return null;
+    }
+
+    private function ensureAdminCanManageExistingLinks(Response $res): void
+    {
+        if (!App::isAdmin()) {
+            Session::flash('error', 'You can only create new links. Managing existing links requires administrator access.');
+            $res->redirect('/admin/links/create');
+        }
+    }
+
+    private function sanitizeForEmailBody(string $value): string
+    {
+        $value = preg_replace('/[\r\n\t]+/', ' ', $value) ?? '';
+        return trim($value);
     }
 }

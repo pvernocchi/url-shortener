@@ -22,6 +22,9 @@
                         <i class="bi bi-box-arrow-in-right me-1"></i>Login
                     </button>
                 </form>
+                <div class="text-center mt-3">
+                    <a href="/signup" class="text-decoration-none">Create account</a>
+                </div>
             </div>
         </div>
     </div>
