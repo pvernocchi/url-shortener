@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Core;
 
 use App\Controllers\AdminController;
+use App\Controllers\AdminTokenController;
 use App\Controllers\ApiController;
 use App\Controllers\AuthController;
 use App\Controllers\CronController;
@@ -107,6 +108,11 @@ class App
         $r->add('POST', '/admin/settings',     [AdminController::class, 'updateSettings']);
         $r->add('GET',  '/admin/backup',       [AdminController::class, 'backup']);
         $r->add('GET',  '/admin/diagnostics',  [AdminController::class, 'diagnostics']);
+        $r->add('GET',  '/admin/tokens',       [AdminTokenController::class, 'index']);
+        $r->add('GET',  '/admin/tokens/create',[AdminTokenController::class, 'create']);
+        $r->add('POST', '/admin/tokens',       [AdminTokenController::class, 'store']);
+        $r->add('POST', '/admin/tokens/{id}/revoke', [AdminTokenController::class, 'revoke']);
+        $r->add('POST', '/admin/tokens/{id}/delete', [AdminTokenController::class, 'delete']);
         $r->add('POST', '/admin/upgrade',      [AdminController::class, 'runUpgrade']);
 
         // Links

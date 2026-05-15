@@ -41,6 +41,9 @@
                 <a class="nav-link px-3 py-2" href="/admin/settings"><i class="bi bi-gear me-2"></i>Settings</a>
             </li>
             <li class="nav-item">
+                <a class="nav-link px-3 py-2" href="/admin/tokens"><i class="bi bi-key me-2"></i>API Tokens</a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link px-3 py-2" href="/admin/backup"><i class="bi bi-download me-2"></i>Backup</a>
             </li>
             <li class="nav-item">
@@ -74,6 +77,7 @@
                         <li class="nav-item"><a class="nav-link" href="/admin/links/create">New Link</a></li>
                         <?php if (\App\Core\App::isAdmin()): ?>
                         <li class="nav-item"><a class="nav-link" href="/admin/settings">Settings</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/admin/tokens">API Tokens</a></li>
                         <?php endif; ?>
                     </ul>
                 </div>
