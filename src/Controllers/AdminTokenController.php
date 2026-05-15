@@ -54,12 +54,14 @@ class AdminTokenController
         if (!Csrf::verify((string)$req->post('_csrf_token'))) {
             Session::flash('error', 'Invalid CSRF token.');
             $this->redirectBack($req, $res, '/admin/tokens/create');
+            return;
         }
 
         $name = trim((string)$req->post('name', ''));
         if ($name === '' || mb_strlen($name) > 100) {
             Session::flash('error', 'Token name is required and must be 1-100 characters.');
             $res->redirect('/admin/tokens/create');
+            return;
         }
 
         $scopes = ApiTokenIssuer::normalizeScopes((array)$req->post('scopes', []));
@@ -83,12 +85,14 @@ class AdminTokenController
         if (!Csrf::verify((string)$req->post('_csrf_token'))) {
             Session::flash('error', 'Invalid CSRF token.');
             $this->redirectBack($req, $res, '/admin/tokens');
+            return;
         }
 
         $id = (int)($params['id'] ?? 0);
         if ($id <= 0) {
             Session::flash('error', 'Invalid token id.');
             $res->redirect('/admin/tokens');
+            return;
         }
 
         $tokenModel = new ApiToken();
@@ -105,12 +109,14 @@ class AdminTokenController
         if (!Csrf::verify((string)$req->post('_csrf_token'))) {
             Session::flash('error', 'Invalid CSRF token.');
             $this->redirectBack($req, $res, '/admin/tokens');
+            return;
         }
 
         $id = (int)($params['id'] ?? 0);
         if ($id <= 0) {
             Session::flash('error', 'Invalid token id.');
             $res->redirect('/admin/tokens');
+            return;
         }
 
         $tokenModel = new ApiToken();
@@ -140,9 +146,10 @@ class AdminTokenController
             $path = parse_url($referer, PHP_URL_PATH);
             if (is_string($path) && $path !== '') {
                 $res->redirect($path);
+                return;
             }
         }
         $res->redirect($fallback);
+        return;
     }
 }
-
