@@ -15,6 +15,7 @@ use App\Controllers\RedirectController;
 class App
 {
     private Router $router;
+    private bool $autoMigrationChecked = false;
 
     public function __construct()
     {
@@ -49,9 +50,11 @@ class App
         // Try to load config (won't throw in install mode)
         if (!$isInstallMode) {
             Config::load();
+            $this->defineAppVersionConstant();
             $timezone = Config::get('app.timezone', 'UTC');
             date_default_timezone_set($timezone);
         } else {
+            $this->defineAppVersionConstant();
             date_default_timezone_set('UTC');
         }
 
@@ -70,6 +73,8 @@ class App
 
         // Start session
         Session::start();
+
+        $this->runAutoMigrationsIfNeeded($isInstallMode);
     }
 
     private function isInstalled(): bool
@@ -108,6 +113,7 @@ class App
         $r->add('POST', '/admin/tokens',       [AdminTokenController::class, 'store']);
         $r->add('POST', '/admin/tokens/{id}/revoke', [AdminTokenController::class, 'revoke']);
         $r->add('POST', '/admin/tokens/{id}/delete', [AdminTokenController::class, 'delete']);
+        $r->add('POST', '/admin/upgrade',      [AdminController::class, 'runUpgrade']);
 
         // Links
         $r->add('GET',  '/admin/links',                [LinkController::class, 'index']);
@@ -127,6 +133,7 @@ class App
 
         // Cron
         $r->add('GET', '/cron/cleanup', [CronController::class, 'cleanup']);
+        $r->add('GET', '/cron/upgrade', [CronController::class, 'upgrade']);
 
         // Redirect (must be last)
         $r->add('GET', '/{code}', [RedirectController::class, 'redirect']);
@@ -165,9 +172,69 @@ class App
 
     private function logError(string $message): void
     {
+        $this->ensureLogDirectoryExists();
+
         $logFile = ROOT_PATH . '/storage/logs/error.log';
         $line    = '[' . date('Y-m-d H:i:s') . '] ' . $message . "\n";
         file_put_contents($logFile, $line, FILE_APPEND | LOCK_EX);
+    }
+
+    private function ensureLogDirectoryExists(): void
+    {
+        $logDir = ROOT_PATH . '/storage/logs';
+        if (!is_dir($logDir)) {
+            @mkdir($logDir, 0775, true);
+        }
+    }
+
+    private function defineAppVersionConstant(): void
+    {
+        if (defined('APP_VERSION')) {
+            return;
+        }
+
+        $versionFile = ROOT_PATH . '/VERSION';
+        $version = '0.0.0';
+        if (file_exists($versionFile)) {
+            $fileVersion = trim((string)file_get_contents($versionFile));
+            if ($fileVersion !== '') {
+                $version = $fileVersion;
+            }
+        }
+
+        define('APP_VERSION', $version);
+    }
+
+    private function runAutoMigrationsIfNeeded(bool $isInstallMode): void
+    {
+        if ($this->autoMigrationChecked || $isInstallMode || !$this->isInstalled()) {
+            return;
+        }
+
+        $this->autoMigrationChecked = true;
+
+        $path = (string)parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+        if (str_starts_with($path, '/install')) {
+            return;
+        }
+
+        if (Config::get('app.auto_migrate', true) !== true) {
+            return;
+        }
+
+        try {
+            $db       = Database::getInstance();
+            $executed = (new Migration())->run($db, ROOT_PATH . '/migrations');
+            Upgrade::syncVersion();
+        } catch (\Throwable $e) {
+            $this->logError('Auto-migration failed: ' . $e->getMessage());
+            if (Config::get('app.debug', false) === true) {
+                throw $e;
+            }
+            http_response_code(503);
+            echo View::render('errors/upgrade', ['title' => 'Service Unavailable']);
+            exit;
+        }
     }
 
     public static function requireAuth(): void

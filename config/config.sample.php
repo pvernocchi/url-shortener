@@ -6,6 +6,7 @@ return [
         'secret'     => 'change-me-32-char-secret-key',
         'debug'      => false,
         'timezone'   => 'UTC',
+        'auto_migrate' => true,
         'installed'  => false,
     ],
     'db' => [

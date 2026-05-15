@@ -1,6 +1,31 @@
 <h4 class="fw-bold mb-4">Diagnostics</h4>
 
 <div class="row g-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Application</h6>
+                <?php if (($versionsMatch ?? false) === true): ?>
+                    <span class="badge bg-success">In Sync</span>
+                <?php else: ?>
+                    <span class="badge bg-warning text-dark">Upgrade Available</span>
+                <?php endif; ?>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm mb-3">
+                    <tr><th>Code Version</th><td><?= e($codeVersion ?? '') ?></td></tr>
+                    <tr><th>DB Version</th><td><?= e(($dbVersion ?? '') !== '' ? $dbVersion : 'Not recorded') ?></td></tr>
+                    <tr><th>Last Migration</th><td><?= e(($lastMigration ?? '') !== '' ? $lastMigration : 'None') ?></td></tr>
+                </table>
+                <form method="POST" action="/admin/upgrade" class="d-inline-block">
+                    <?= \App\Core\Csrf::field() ?>
+                    <button type="submit" class="btn <?= ($versionsMatch ?? false) ? 'btn-outline-secondary' : 'btn-primary' ?>">
+                        <i class="bi bi-arrow-repeat me-1"></i>Run pending migrations
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
     <div class="col-md-6">
         <div class="card shadow-sm">
             <div class="card-header"><h6 class="mb-0">PHP Environment</h6></div>
