@@ -1,0 +1,7 @@
+/vendor/
+/config/config.php
+/storage/logs/*.log
+/storage/cache/rl_*.json
+/.phpunit.result.cache
+tests/.phpunit.result.cache
+*.zip~
