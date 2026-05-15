@@ -51,7 +51,7 @@ class AdminUserController
         }
 
         if (($user['role'] ?? 'user') === 'admin') {
-            Session::flash('success', 'User is already an admin.');
+            Session::flash('error', 'User is already an admin.');
             $res->redirect('/admin/users');
         }
 
