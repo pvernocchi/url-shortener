@@ -39,6 +39,9 @@
             <li class="nav-item">
                 <a class="nav-link px-3 py-2" href="/admin/links/create"><i class="bi bi-plus-circle me-2"></i>New Link</a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link px-3 py-2" href="/admin/security"><i class="bi bi-shield-lock me-2"></i>Security</a>
+            </li>
             <?php if ($isAdmin): ?>
             <li class="nav-item">
                 <a class="nav-link px-3 py-2" href="/admin/users"><i class="bi bi-people me-2"></i>Users</a>
@@ -86,6 +89,7 @@
                         <li class="nav-item"><a class="nav-link" href="/admin/links">Links</a></li>
                         <?php endif; ?>
                         <li class="nav-item"><a class="nav-link" href="/admin/links/create">New Link</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/admin/security">Security</a></li>
                         <?php if ($isAdmin): ?>
                         <li class="nav-item"><a class="nav-link" href="/admin/users">Users</a></li>
                         <li class="nav-item"><a class="nav-link" href="/admin/settings">Settings</a></li>

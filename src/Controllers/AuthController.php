@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Core\App;
 use App\Core\Config;
 use App\Core\Csrf;
 use App\Core\RateLimiter;
@@ -13,7 +14,9 @@ use App\Core\View;
 use App\Models\Setting;
 use App\Models\SignupInvitation;
 use App\Models\User;
+use App\Services\CaptchaVerifier;
 use App\Services\Mailer;
+use App\Services\Totp;
 
 class AuthController
 {
@@ -24,7 +27,19 @@ class AuthController
         if (Session::has('user_id')) {
             $res->redirect('/admin');
         }
-        $html = View::renderWithLayout('auth/login', ['title' => 'Login']);
+
+        $settingModel = new Setting();
+        $captchaProvider = strtolower((string)$settingModel->get('captcha_provider', (string)Config::get('captcha.provider', 'recaptcha')));
+        if (!in_array($captchaProvider, ['recaptcha', 'turnstile'], true)) {
+            $captchaProvider = 'recaptcha';
+        }
+
+        $html = View::renderWithLayout('auth/login', [
+            'title'           => 'Login',
+            'captchaEnabled'  => $settingModel->get('captcha_enabled', Config::get('captcha.enabled', false) ? '1' : '0') === '1',
+            'captchaProvider' => $captchaProvider,
+            'captchaSiteKey'  => (string)$settingModel->get('captcha_site_key', (string)Config::get('captcha.site_key', '')),
+        ]);
         $res->html($html);
     }
 
@@ -37,6 +52,17 @@ class AuthController
 
         $email    = trim((string)$req->post('email', ''));
         $password = (string)$req->post('password', '');
+        $settingModel = new Setting();
+
+        $captchaProvider = strtolower((string)$settingModel->get('captcha_provider', (string)Config::get('captcha.provider', 'recaptcha')));
+        if (!in_array($captchaProvider, ['recaptcha', 'turnstile'], true)) {
+            $captchaProvider = 'recaptcha';
+        }
+        $captchaEnabled = $settingModel->get('captcha_enabled', Config::get('captcha.enabled', false) ? '1' : '0') === '1';
+        $captchaSecret = (string)$settingModel->get('captcha_secret_key', (string)Config::get('captcha.secret_key', ''));
+        $captchaToken = $captchaProvider === 'turnstile'
+            ? (string)$req->post('cf-turnstile-response', '')
+            : (string)$req->post('g-recaptcha-response', '');
 
         // Rate limiting
         $rateLimiter = new RateLimiter();
@@ -48,6 +74,12 @@ class AuthController
 
         if (empty($email) || empty($password)) {
             Session::flash('error', 'Email and password are required.');
+            $res->redirect('/login');
+        }
+
+        $captchaVerifier = new CaptchaVerifier();
+        if (!$captchaVerifier->verify($captchaEnabled, $captchaProvider, $captchaSecret, $captchaToken, $req->ip())) {
+            Session::flash('error', 'CAPTCHA validation failed. Please try again.');
             $res->redirect('/login');
         }
 
@@ -91,13 +123,33 @@ class AuthController
 
         // Success
         $userModel->resetLoginAttempts((int)$user['id']);
-        Session::regenerate();
-        Session::set('user_id', (int)$user['id']);
-        Session::set('user_email', $user['email']);
-        Session::set('user_name', $user['name']);
-        Session::set('user_role', $user['role']);
+        $this->clearPendingAuth();
 
-        $res->redirect('/admin');
+        $mfaPolicy = strtolower((string)$settingModel->get('mfa_policy', (string)Config::get('security.mfa_policy', 'optional')));
+        if (!in_array($mfaPolicy, ['optional', 'required'], true)) {
+            $mfaPolicy = 'optional';
+        }
+
+        $totpEnabled = $settingModel->get('mfa_allow_totp', '1') === '1';
+        $totpSecret  = (string)($user['mfa_totp_secret'] ?? '');
+
+        if ($totpEnabled && $totpSecret !== '') {
+            $this->storePendingUser($user, $mfaPolicy === 'required');
+            Session::set('pending_mfa_type', 'totp');
+            $res->redirect('/login/mfa');
+        }
+
+        if ($mfaPolicy === 'required') {
+            if (!$totpEnabled) {
+                Session::flash('error', 'MFA is required but no supported MFA method is enabled.');
+                $res->redirect('/login');
+            }
+
+            $this->storePendingUser($user, true);
+            $res->redirect('/login/mfa/setup');
+        }
+
+        $this->finalizeLogin($user, $res);
     }
 
     public function handleLogout(Request $req, Response $res): void
@@ -107,6 +159,208 @@ class AuthController
         }
         Session::destroy();
         $res->redirect('/login');
+    }
+
+    public function showSecuritySettings(Request $req, Response $res): void
+    {
+        App::requireAuth();
+
+        $settingModel = new Setting();
+        $totpAllowed = $settingModel->get('mfa_allow_totp', '1') === '1';
+        $userModel = new User();
+        $user = $userModel->findById((int)Session::get('user_id'));
+        if (!$user) {
+            Session::destroy();
+            $res->redirect('/login');
+        }
+
+        $totpSecret = '';
+        if ($totpAllowed && empty($user['mfa_totp_secret'])) {
+            $totpSecret = (string)Session::get('account_totp_secret', '');
+            if ($totpSecret === '') {
+                $totpSecret = (new Totp())->generateSecret();
+                Session::set('account_totp_secret', $totpSecret);
+            }
+        }
+
+        $issuer = (string)$settingModel->get('site_name', Config::get('app.name', 'URL Shortener'));
+        $html = View::renderWithLayout('auth/security_settings', [
+            'title'               => 'Security Settings',
+            'totpAllowed'         => $totpAllowed,
+            'totpEnabled'         => !empty($user['mfa_totp_secret']),
+            'totpSecret'          => $totpSecret,
+            'totpProvisioningUri' => $totpSecret !== '' ? (new Totp())->provisioningUri($issuer, (string)$user['email'], $totpSecret) : '',
+        ]);
+        $res->html($html);
+    }
+
+    public function updateSecuritySettings(Request $req, Response $res): void
+    {
+        App::requireAuth();
+        if (!Csrf::verify((string)$req->post('_csrf_token'))) {
+            Session::flash('error', 'Invalid CSRF token.');
+            $res->redirect('/admin/security');
+        }
+
+        $action = (string)$req->post('action', '');
+        $userId = (int)Session::get('user_id');
+        $userModel = new User();
+        $user = $userModel->findById($userId);
+        if (!$user) {
+            Session::destroy();
+            $res->redirect('/login');
+        }
+
+        if ($action === 'disable_totp') {
+            $userModel->clearTotpSecret($userId);
+            Session::remove('account_totp_secret');
+            Session::flash('success', 'TOTP has been disabled.');
+            $res->redirect('/admin/security');
+        }
+
+        if ($action === 'enable_totp') {
+            $secret = (string)Session::get('account_totp_secret', '');
+            $code = (string)$req->post('mfa_code', '');
+            if ($secret === '' || !(new Totp())->verifyCode($secret, $code)) {
+                Session::flash('error', 'Invalid authentication code.');
+                $res->redirect('/admin/security');
+            }
+
+            $userModel->setTotpSecret($userId, $secret);
+            Session::remove('account_totp_secret');
+            Session::flash('success', 'TOTP has been enabled.');
+            $res->redirect('/admin/security');
+        }
+
+        Session::flash('error', 'Unsupported security action.');
+        $res->redirect('/admin/security');
+    }
+
+    public function showMfaChallenge(Request $req, Response $res): void
+    {
+        if (Session::has('user_id')) {
+            $res->redirect('/admin');
+        }
+
+        if (Session::get('pending_mfa_type') !== 'totp' || !$this->hasPendingUser()) {
+            $res->redirect('/login');
+        }
+
+        $html = View::renderWithLayout('auth/mfa_challenge', [
+            'title'       => 'Multi-factor authentication',
+            'pendingEmail' => (string)Session::get('pending_user_email', ''),
+        ]);
+        $res->html($html);
+    }
+
+    public function handleMfaChallenge(Request $req, Response $res): void
+    {
+        if (!Csrf::verify((string)$req->post('_csrf_token'))) {
+            Session::flash('error', 'Invalid CSRF token.');
+            $res->redirect('/login');
+        }
+
+        if (Session::get('pending_mfa_type') !== 'totp' || !$this->hasPendingUser()) {
+            $res->redirect('/login');
+        }
+
+        $userId = (int)Session::get('pending_user_id');
+        $user   = (new User())->findById($userId);
+        if (!$user || ($user['status'] ?? 'active') !== 'active') {
+            $this->clearPendingAuth();
+            Session::flash('error', 'Your account is no longer available.');
+            $res->redirect('/login');
+        }
+
+        $secret = (string)($user['mfa_totp_secret'] ?? '');
+        $code   = (string)$req->post('mfa_code', '');
+        if ($secret === '' || !(new Totp())->verifyCode($secret, $code)) {
+            Session::flash('error', 'Invalid authentication code.');
+            $res->redirect('/login/mfa');
+        }
+
+        $this->finalizeLogin($user, $res);
+    }
+
+    public function showMfaSetup(Request $req, Response $res): void
+    {
+        if (Session::has('user_id')) {
+            $res->redirect('/admin');
+        }
+
+        if (!$this->hasPendingUser()) {
+            $res->redirect('/login');
+        }
+
+        $settingModel = new Setting();
+
+        $totpEnabled = $settingModel->get('mfa_allow_totp', '1') === '1';
+        if (!$totpEnabled) {
+            Session::flash('error', 'TOTP setup is currently disabled by your administrator.');
+            $res->redirect('/login');
+        }
+
+        $totp = new Totp();
+        $secret = (string)Session::get('pending_mfa_secret', '');
+        if ($secret === '') {
+            $secret = $totp->generateSecret();
+            Session::set('pending_mfa_secret', $secret);
+        }
+
+        $issuer = (string)$settingModel->get('site_name', Config::get('app.name', 'URL Shortener'));
+        $email  = (string)Session::get('pending_user_email', '');
+
+        $html = View::renderWithLayout('auth/mfa_setup', [
+            'title'                  => 'Set up MFA',
+            'totpSecret'             => $secret,
+            'totpProvisioningUri'    => $totp->provisioningUri($issuer, $email, $secret),
+            'mfaRequired'            => Session::get('pending_mfa_required') === true,
+            'allowWebauthnPlatform'  => $settingModel->get('mfa_allow_webauthn_platform', '1') === '1',
+            'allowWebauthnYubikey'   => $settingModel->get('mfa_allow_webauthn_security_key', '1') === '1',
+        ]);
+        $res->html($html);
+    }
+
+    public function handleMfaSetup(Request $req, Response $res): void
+    {
+        if (!Csrf::verify((string)$req->post('_csrf_token'))) {
+            Session::flash('error', 'Invalid CSRF token.');
+            $res->redirect('/login');
+        }
+
+        if (!$this->hasPendingUser()) {
+            $res->redirect('/login');
+        }
+
+        $action = (string)$req->post('action', 'enable_totp');
+        if ($action === 'skip' && Session::get('pending_mfa_required') !== true) {
+            $user = (new User())->findById((int)Session::get('pending_user_id'));
+            if (!$user) {
+                $this->clearPendingAuth();
+                Session::flash('error', 'Your account is no longer available.');
+                $res->redirect('/login');
+            }
+            $this->finalizeLogin($user, $res);
+        }
+
+        $secret = (string)Session::get('pending_mfa_secret', '');
+        $code   = (string)$req->post('mfa_code', '');
+        if ($secret === '' || !(new Totp())->verifyCode($secret, $code)) {
+            Session::flash('error', 'Invalid code. Please try again.');
+            $res->redirect('/login/mfa/setup');
+        }
+
+        $userId = (int)Session::get('pending_user_id');
+        $userModel = new User();
+        $userModel->setTotpSecret($userId, $secret);
+        $user = $userModel->findById($userId);
+        if (!$user) {
+            $this->clearPendingAuth();
+            Session::flash('error', 'Your account is no longer available.');
+            $res->redirect('/login');
+        }
+
+        $this->finalizeLogin($user, $res);
     }
 
     public function showSignupRequest(Request $req, Response $res): void
@@ -258,5 +512,45 @@ class AuthController
     {
         $value = preg_replace('/[\r\n\t]+/', ' ', $value) ?? '';
         return trim($value);
+    }
+
+    private function finalizeLogin(array $user, Response $res): void
+    {
+        $this->clearPendingAuth();
+        Session::regenerate();
+        Session::set('user_id', (int)$user['id']);
+        Session::set('user_email', $user['email']);
+        Session::set('user_name', $user['name']);
+        Session::set('user_role', $user['role']);
+        $res->redirect('/admin');
+    }
+
+    private function hasPendingUser(): bool
+    {
+        return Session::get('pending_user_id') !== null;
+    }
+
+    private function storePendingUser(array $user, bool $required): void
+    {
+        Session::set('pending_user_id', (int)$user['id']);
+        Session::set('pending_user_email', $user['email']);
+        Session::set('pending_user_name', $user['name']);
+        Session::set('pending_user_role', $user['role']);
+        Session::set('pending_mfa_required', $required);
+    }
+
+    private function clearPendingAuth(): void
+    {
+        foreach ([
+            'pending_user_id',
+            'pending_user_email',
+            'pending_user_name',
+            'pending_user_role',
+            'pending_mfa_required',
+            'pending_mfa_type',
+            'pending_mfa_secret',
+        ] as $key) {
+            Session::remove($key);
+        }
     }
 }

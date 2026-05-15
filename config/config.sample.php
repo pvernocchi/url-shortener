@@ -26,6 +26,13 @@ return [
         'blocked_domains'     => [],
         'login_max_attempts'  => 5,
         'login_lockout_mins'  => 15,
+        'mfa_policy'          => 'optional', // optional|required
+    ],
+    'captcha' => [
+        'enabled'   => false,
+        'provider'  => 'recaptcha', // recaptcha|turnstile
+        'site_key'  => '',
+        'secret_key'=> '',
     ],
     'analytics' => [
         'enabled'             => true,

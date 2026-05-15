@@ -21,3 +21,9 @@ curl -X POST "https://your-shortener.example/api/v1/links" \
 A machine-readable OpenAPI specification is available at [`openapi.yaml`](openapi.yaml).
 
 You can view it with Swagger UI, Redoc, or by importing it into https://editor.swagger.io.
+
+## Login Security
+
+- Configure global MFA policy and allowed factors in **Admin → Settings**.
+- Users can enroll TOTP in **Security** (supports Google Authenticator / Microsoft Authenticator).
+- Login CAPTCHA supports **Google reCAPTCHA** and **Cloudflare Turnstile**.

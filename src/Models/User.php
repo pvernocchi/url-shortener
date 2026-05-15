@@ -87,4 +87,20 @@ class User
             'updated_at'   => date('Y-m-d H:i:s'),
         ], '`id` = ?', [$id]);
     }
+
+    public function setTotpSecret(int $id, string $secret): void
+    {
+        $this->db->update($this->table, [
+            'mfa_totp_secret' => $secret,
+            'updated_at'      => date('Y-m-d H:i:s'),
+        ], '`id` = ?', [$id]);
+    }
+
+    public function clearTotpSecret(int $id): void
+    {
+        $this->db->update($this->table, [
+            'mfa_totp_secret' => null,
+            'updated_at'      => date('Y-m-d H:i:s'),
+        ], '`id` = ?', [$id]);
+    }
 }
