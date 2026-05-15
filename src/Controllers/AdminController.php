@@ -13,6 +13,7 @@ use App\Core\View;
 use App\Models\ClickEvent;
 use App\Models\Link;
 use App\Models\Setting;
+use App\Services\Mailer;
 
 class AdminController
 {
@@ -136,6 +137,90 @@ class AdminController
             'versionsMatch'=> $versionsMatch,
         ]);
         $res->html($html);
+    }
+
+    public function emailSettings(Request $req, Response $res): void
+    {
+        App::requireAuth();
+        App::requireAdmin();
+
+        $settingModel = new Setting();
+        $settings     = $settingModel->all();
+
+        $html = View::renderWithLayout('admin/email_settings', [
+            'title'    => 'Email Settings',
+            'settings' => $settings,
+        ]);
+        $res->html($html);
+    }
+
+    public function updateEmailSettings(Request $req, Response $res): void
+    {
+        App::requireAuth();
+        App::requireAdmin();
+
+        if (!Csrf::verify((string)$req->post('_csrf_token'))) {
+            Session::flash('error', 'Invalid CSRF token.');
+            $res->redirect('/admin/settings/email');
+        }
+
+        $settingModel = new Setting();
+
+        $fields = [
+            'smtp_host',
+            'smtp_port',
+            'smtp_encryption',
+            'smtp_username',
+            'smtp_from_address',
+            'smtp_from_name',
+        ];
+
+        foreach ($fields as $field) {
+            $value = $req->post($field);
+            if ($value !== null) {
+                $settingModel->set($field, (string)$value);
+            }
+        }
+
+        // Password: only update when a non-empty value is submitted
+        $password = $req->post('smtp_password');
+        if ($password !== null && $password !== '') {
+            $settingModel->set('smtp_password', $password);
+        }
+
+        // Checkbox → '1' when checked, '0' otherwise
+        $settingModel->set('smtp_logging', $req->post('smtp_logging') === '1' ? '1' : '0');
+
+        Setting::clearCache();
+        Session::flash('success', 'Email settings updated successfully.');
+        $res->redirect('/admin/settings/email');
+    }
+
+    public function testEmail(Request $req, Response $res): void
+    {
+        App::requireAuth();
+        App::requireAdmin();
+
+        if (!Csrf::verify((string)$req->post('_csrf_token'))) {
+            Session::flash('error', 'Invalid CSRF token.');
+            $res->redirect('/admin/settings/email');
+        }
+
+        $to = trim((string)$req->post('test_email_to'));
+        if ($to === '' || !filter_var($to, FILTER_VALIDATE_EMAIL)) {
+            Session::flash('error', 'Please enter a valid recipient e-mail address.');
+            $res->redirect('/admin/settings/email');
+        }
+
+        try {
+            $mailer = Mailer::fromSettings(new Setting());
+            $mailer->sendTest($to);
+            Session::flash('success', "Test e-mail sent successfully to {$to}.");
+        } catch (\Throwable $e) {
+            Session::flash('error', 'Failed to send test e-mail: ' . $e->getMessage());
+        }
+
+        $res->redirect('/admin/settings/email');
     }
 
     public function runUpgrade(Request $req, Response $res): void

@@ -104,8 +104,11 @@ class App
 
         // Admin
         $r->add('GET',  '/admin',              [AdminController::class, 'dashboard']);
-        $r->add('GET',  '/admin/settings',     [AdminController::class, 'settings']);
-        $r->add('POST', '/admin/settings',     [AdminController::class, 'updateSettings']);
+        $r->add('GET',  '/admin/settings',        [AdminController::class, 'settings']);
+        $r->add('POST', '/admin/settings',        [AdminController::class, 'updateSettings']);
+        $r->add('GET',  '/admin/settings/email',  [AdminController::class, 'emailSettings']);
+        $r->add('POST', '/admin/settings/email',  [AdminController::class, 'updateEmailSettings']);
+        $r->add('POST', '/admin/settings/email/test', [AdminController::class, 'testEmail']);
         $r->add('GET',  '/admin/backup',       [AdminController::class, 'backup']);
         $r->add('GET',  '/admin/diagnostics',  [AdminController::class, 'diagnostics']);
         $r->add('GET',  '/admin/tokens',       [AdminTokenController::class, 'index']);
