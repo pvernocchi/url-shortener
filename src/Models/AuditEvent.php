@@ -41,7 +41,6 @@ class AuditEvent
             'new_value'     => $newValue,
             'ip_address'    => substr($req->ip(), 0, 45),
             'user_agent'    => substr((string)$req->userAgent(), 0, 500),
-            'created_at'    => date('Y-m-d H:i:s'),
         ]);
     }
 }

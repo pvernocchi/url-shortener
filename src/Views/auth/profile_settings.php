@@ -8,8 +8,9 @@
                     <?= \App\Core\Csrf::field() ?>
 
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Display Name</label>
+                        <label for="profile_name" class="form-label fw-semibold">Display Name</label>
                         <input
+                            id="profile_name"
                             type="text"
                             name="name"
                             class="form-control"
@@ -20,23 +21,46 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Email</label>
-                        <input type="email" class="form-control" value="<?= e($user['email'] ?? '') ?>" readonly>
-                        <div class="form-text">Email changes are not available from this page.</div>
+                        <label for="profile_email" class="form-label fw-semibold">Email</label>
+                        <input
+                            id="profile_email"
+                            type="email"
+                            class="form-control"
+                            value="<?= e($user['email'] ?? '') ?>"
+                            readonly
+                            aria-describedby="profile_email_help"
+                        >
+                        <div id="profile_email_help" class="form-text">Email changes are not available from this page.</div>
                     </div>
 
                     <hr class="my-4">
                     <h6 class="fw-semibold mb-3">Change Password</h6>
-                    <p class="text-muted small">Leave both password fields empty to keep your current password.</p>
+                    <p id="profile_password_help" class="text-muted small">Leave both password fields empty to keep your current password.</p>
 
                     <div class="mb-3">
-                        <label class="form-label">New Password</label>
-                        <input type="password" name="password" class="form-control" minlength="8" autocomplete="new-password">
+                        <label for="profile_password" class="form-label">Password</label>
+                        <input
+                            id="profile_password"
+                            type="password"
+                            name="password"
+                            class="form-control"
+                            minlength="<?= (int)($minPasswordLength ?? 8) ?>"
+                            autocomplete="new-password"
+                            aria-describedby="profile_password_help"
+                        >
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Confirm New Password</label>
-                        <input type="password" name="password_confirm" class="form-control" minlength="8" autocomplete="new-password">
+                        <label for="profile_password_confirm" class="form-label">Confirm Password</label>
+                        <input
+                            id="profile_password_confirm"
+                            type="password"
+                            name="password_confirm"
+                            class="form-control"
+                            minlength="<?= (int)($minPasswordLength ?? 8) ?>"
+                            autocomplete="new-password"
+                            aria-describedby="profile_password_help"
+                        >
                     </div>
 
                     <button type="submit" class="btn btn-primary">

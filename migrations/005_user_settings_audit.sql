@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS `{prefix}user_settings` (
 
 INSERT INTO `{prefix}user_settings` (`user_id`, `key`, `value`)
 SELECT `id`, 'mfa_totp_enabled',
+       -- Legacy behavior challenged users when a TOTP secret existed, so we migrate those users as enabled.
        CASE
          WHEN `mfa_totp_secret` IS NULL OR `mfa_totp_secret` = '' THEN '0'
          ELSE '1'

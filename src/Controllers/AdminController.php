@@ -238,9 +238,11 @@ class AdminController
         // Password: only update when a non-empty value is submitted
         $password = $req->post('smtp_password');
         if ($password !== null && $password !== '') {
-            $oldMasked = ($currentSettings['smtp_password'] ?? '') !== '' ? '[set]' : null;
+            $hadPassword = ($currentSettings['smtp_password'] ?? '') !== '';
+            $oldMasked = $hadPassword ? '[set]' : null;
+            $newMasked = $hadPassword ? '[changed]' : '[set]';
             $settingModel->set('smtp_password', $password);
-            $audit->recordSettingChange($req, 'system', 'smtp_password', $oldMasked, '[set]');
+            $audit->recordSettingChange($req, 'system', 'smtp_password', $oldMasked, $newMasked);
         }
 
         // Checkbox → '1' when checked, '0' otherwise

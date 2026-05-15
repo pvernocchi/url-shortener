@@ -23,6 +23,7 @@ use App\Services\Totp;
 class AuthController
 {
     private const INVITATION_TTL = 86400;
+    private const MIN_PASSWORD_LENGTH = 8;
 
     public function showLogin(Request $req, Response $res): void
     {
@@ -268,8 +269,9 @@ class AuthController
         }
 
         $html = View::renderWithLayout('auth/profile_settings', [
-            'title' => 'Profile Settings',
-            'user'  => $user,
+            'title'             => 'Profile Settings',
+            'user'              => $user,
+            'minPasswordLength' => self::MIN_PASSWORD_LENGTH,
         ]);
         $res->html($html);
     }
@@ -304,8 +306,8 @@ class AuthController
         $password = (string)$req->post('password', '');
         $confirmPassword = (string)$req->post('password_confirm', '');
         if ($password !== '' || $confirmPassword !== '') {
-            if (strlen($password) < 8) {
-                Session::flash('error', 'Password must be at least 8 characters.');
+            if (mb_strlen($password) < self::MIN_PASSWORD_LENGTH) {
+                Session::flash('error', 'Password must be at least ' . self::MIN_PASSWORD_LENGTH . ' characters.');
                 $res->redirect('/admin/profile');
             }
             if ($password !== $confirmPassword) {
@@ -319,7 +321,7 @@ class AuthController
             $updates['name'] = $name;
         }
         if ($password !== '') {
-            $updates['password'] = $password;
+            $updates['password_hash'] = password_hash($password, PASSWORD_BCRYPT);
         }
 
         if ($updates === []) {
@@ -334,7 +336,7 @@ class AuthController
             $audit->recordSettingChange($req, 'profile', 'name', (string)$user['name'], $name, $userId);
             Session::set('user_name', $name);
         }
-        if (isset($updates['password'])) {
+        if (isset($updates['password_hash'])) {
             $audit->recordSettingChange($req, 'profile', 'password', null, '[changed]', $userId);
         }
 
@@ -580,8 +582,8 @@ class AuthController
             Session::flash('error', 'Invalid invitation.');
             $res->redirect('/signup');
         }
-        if (strlen($password) < 8) {
-            Session::flash('error', 'Password must be at least 8 characters.');
+        if (mb_strlen($password) < self::MIN_PASSWORD_LENGTH) {
+            Session::flash('error', 'Password must be at least ' . self::MIN_PASSWORD_LENGTH . ' characters.');
             $res->redirect('/signup/complete?token=' . urlencode($token));
         }
         if ($password !== $confirmPassword) {
