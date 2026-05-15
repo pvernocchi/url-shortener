@@ -98,6 +98,9 @@ class App
         $r->add('POST', '/install/step2',    [InstallController::class, 'handleStep2']);
         $r->add('GET',  '/install/complete', [InstallController::class, 'showComplete']);
 
+        // Root
+        $r->add('GET',  '/',                [AuthController::class, 'showLogin']);
+
         // Auth
         $r->add('GET',  '/login',           [AuthController::class, 'showLogin']);
         $r->add('POST', '/login',           [AuthController::class, 'handleLogin']);
