@@ -144,7 +144,13 @@ class AdminTokenController
         $referer = $req->referer();
         if ($referer !== '') {
             $path = parse_url($referer, PHP_URL_PATH);
-            if (is_string($path) && $path !== '') {
+            if (
+                is_string($path)
+                && $path !== ''
+                && str_starts_with($path, '/')
+                && !str_starts_with($path, '//')
+                && ($path === '/admin' || str_starts_with($path, '/admin/'))
+            ) {
                 $res->redirect($path);
                 return;
             }
