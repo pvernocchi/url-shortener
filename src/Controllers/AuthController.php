@@ -138,7 +138,7 @@ class AuthController
 
         $userModel = new User();
         if ($userModel->findByEmail($email)) {
-            Session::flash('error', 'An account with this e-mail already exists.');
+            Session::flash('error', 'An account with this email already exists.');
             $res->redirect('/login');
         }
 
@@ -169,7 +169,7 @@ class AuthController
             $res->redirect('/signup');
         }
 
-        Session::flash('success', 'Invitation sent. Check your e-mail to complete account creation.');
+        Session::flash('success', 'Invitation sent. Check your email to complete account creation.');
         $res->redirect('/login');
     }
 
@@ -233,7 +233,7 @@ class AuthController
 
         $userModel = new User();
         if ($userModel->findByEmail((string)$invitation['email'])) {
-            Session::flash('error', 'An account with this e-mail already exists.');
+            Session::flash('error', 'An account with this email already exists.');
             $res->redirect('/login');
         }
 
