@@ -35,4 +35,14 @@ return [
     'api' => [
         'enabled'  => true,
     ],
+    'mail' => [
+        'smtp_host'         => 'smtp.example.com',
+        'smtp_port'         => 587,
+        'smtp_encryption'   => 'tls',   // 'tls' (STARTTLS), 'ssl' (implicit TLS), or 'none'
+        'smtp_username'     => '',
+        'smtp_password'     => '',
+        'smtp_from_address' => 'noreply@example.com',
+        'smtp_from_name'    => 'URL Shortener',
+        'smtp_logging'      => false,   // set to true to log SMTP conversations for troubleshooting
+    ],
 ];
