@@ -10,6 +10,7 @@ use App\Core\Migration;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\Session;
+use App\Core\Upgrade;
 use App\Core\View;
 use App\Models\Setting;
 use App\Models\User;
@@ -141,6 +142,7 @@ class InstallController
                 'secret'    => $appSecret,
                 'debug'     => false,
                 'timezone'  => 'UTC',
+                'auto_migrate' => true,
                 'installed' => true,
             ],
             'db' => [
@@ -208,6 +210,7 @@ class InstallController
             $settingModel->set('site_name', $appName);
             $settingModel->set('allow_registration', '0');
             $settingModel->set('default_redirect_type', '302');
+            $settingModel->set('app_version', Upgrade::getCodeVersion());
         } catch (\Throwable $e) {
             // Non-fatal
         }

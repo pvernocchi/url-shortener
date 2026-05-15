@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Core\Config;
+use App\Core\Upgrade;
 use App\Core\Request;
 use App\Core\Response;
 use App\Models\ClickEvent;
@@ -35,5 +36,25 @@ class CronController
 
         $results['executed_at'] = date('Y-m-d H:i:s');
         $res->json(['success' => true, 'results' => $results]);
+    }
+
+    public function upgrade(Request $req, Response $res): void
+    {
+        $cronKey     = Config::get('cron.key', '');
+        $providedKey = (string)$req->get('key', '');
+
+        if (empty($cronKey) || !hash_equals($cronKey, $providedKey)) {
+            $res->json(['error' => 'Forbidden.'], 403);
+        }
+
+        try {
+            $executed = Upgrade::runPendingMigrations();
+            $res->json([
+                'executed' => $executed,
+                'version'  => Upgrade::getCodeVersion(),
+            ]);
+        } catch (\Throwable $e) {
+            $res->json(['error' => $e->getMessage()], 500);
+        }
     }
 }

@@ -5,6 +5,7 @@ namespace App\Controllers;
 
 use App\Core\App;
 use App\Core\Csrf;
+use App\Core\Upgrade;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\Session;
@@ -119,12 +120,45 @@ class AdminController
             $writableDirs[$label] = is_writable($path);
         }
 
+        $codeVersion   = Upgrade::getCodeVersion();
+        $dbVersion     = Upgrade::getStoredVersion();
+        $lastMigration = Upgrade::getLastMigrationFilename();
+        $versionsMatch = !Upgrade::needsVersionUpdate($codeVersion, $dbVersion);
+
         $html = View::renderWithLayout('admin/diagnostics', [
             'title'        => 'Diagnostics',
             'phpVersion'   => PHP_VERSION,
             'extensions'   => get_loaded_extensions(),
             'writableDirs' => $writableDirs,
+            'codeVersion'  => $codeVersion,
+            'dbVersion'    => $dbVersion,
+            'lastMigration'=> $lastMigration,
+            'versionsMatch'=> $versionsMatch,
         ]);
         $res->html($html);
+    }
+
+    public function runUpgrade(Request $req, Response $res): void
+    {
+        App::requireAuth();
+        App::requireAdmin();
+
+        if (!Csrf::verify((string)$req->post('_csrf_token'))) {
+            Session::flash('error', 'Invalid CSRF token.');
+            $res->redirect('/admin/diagnostics');
+        }
+
+        try {
+            $executed = Upgrade::runPendingMigrations();
+            if ($executed === []) {
+                Session::flash('success', 'Already up to date.');
+            } else {
+                Session::flash('success', 'Executed migrations: ' . implode(', ', $executed));
+            }
+        } catch (\Throwable $e) {
+            Session::flash('error', 'Upgrade failed: ' . $e->getMessage());
+        }
+
+        $res->redirect('/admin/diagnostics');
     }
 }
