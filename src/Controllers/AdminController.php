@@ -10,6 +10,7 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Core\Session;
 use App\Core\View;
+use App\Models\AuditEvent;
 use App\Models\ClickEvent;
 use App\Models\Link;
 use App\Models\Setting;
@@ -68,6 +69,8 @@ class AdminController
         }
 
         $settingModel = new Setting();
+        $currentSettings = $settingModel->all();
+        $audit = new AuditEvent();
         $fields       = [
             'site_name',
             'allow_registration',
@@ -79,7 +82,10 @@ class AdminController
         foreach ($fields as $field) {
             $value = $req->post($field);
             if ($value !== null) {
-                $settingModel->set($field, (string)$value);
+                $newValue = (string)$value;
+                $oldValue = isset($currentSettings[$field]) ? (string)$currentSettings[$field] : null;
+                $settingModel->set($field, $newValue);
+                $audit->recordSettingChange($req, 'system', $field, $oldValue, $newValue);
             }
         }
 
@@ -87,18 +93,34 @@ class AdminController
         if (!in_array($mfaPolicy, ['optional', 'required'], true)) {
             $mfaPolicy = 'optional';
         }
+        $oldMfaPolicy = isset($currentSettings['mfa_policy']) ? (string)$currentSettings['mfa_policy'] : null;
         $settingModel->set('mfa_policy', $mfaPolicy);
+        $audit->recordSettingChange($req, 'system', 'mfa_policy', $oldMfaPolicy, $mfaPolicy);
 
         $captchaProvider = (string)$req->post('captcha_provider', 'recaptcha');
         if (!in_array($captchaProvider, ['recaptcha', 'turnstile'], true)) {
             $captchaProvider = 'recaptcha';
         }
+        $oldCaptchaProvider = isset($currentSettings['captcha_provider']) ? (string)$currentSettings['captcha_provider'] : null;
         $settingModel->set('captcha_provider', $captchaProvider);
+        $audit->recordSettingChange($req, 'system', 'captcha_provider', $oldCaptchaProvider, $captchaProvider);
 
-        $settingModel->set('mfa_allow_totp', $req->post('mfa_allow_totp') === '1' ? '1' : '0');
-        $settingModel->set('mfa_allow_webauthn_platform', $req->post('mfa_allow_webauthn_platform') === '1' ? '1' : '0');
-        $settingModel->set('mfa_allow_webauthn_security_key', $req->post('mfa_allow_webauthn_security_key') === '1' ? '1' : '0');
-        $settingModel->set('captcha_enabled', $req->post('captcha_enabled') === '1' ? '1' : '0');
+        $mfaAllowTotp = $req->post('mfa_allow_totp') === '1' ? '1' : '0';
+        $mfaAllowWebauthnPlatform = $req->post('mfa_allow_webauthn_platform') === '1' ? '1' : '0';
+        $mfaAllowWebauthnSecurityKey = $req->post('mfa_allow_webauthn_security_key') === '1' ? '1' : '0';
+        $captchaEnabled = $req->post('captcha_enabled') === '1' ? '1' : '0';
+
+        $settingModel->set('mfa_allow_totp', $mfaAllowTotp);
+        $audit->recordSettingChange($req, 'system', 'mfa_allow_totp', isset($currentSettings['mfa_allow_totp']) ? (string)$currentSettings['mfa_allow_totp'] : null, $mfaAllowTotp);
+
+        $settingModel->set('mfa_allow_webauthn_platform', $mfaAllowWebauthnPlatform);
+        $audit->recordSettingChange($req, 'system', 'mfa_allow_webauthn_platform', isset($currentSettings['mfa_allow_webauthn_platform']) ? (string)$currentSettings['mfa_allow_webauthn_platform'] : null, $mfaAllowWebauthnPlatform);
+
+        $settingModel->set('mfa_allow_webauthn_security_key', $mfaAllowWebauthnSecurityKey);
+        $audit->recordSettingChange($req, 'system', 'mfa_allow_webauthn_security_key', isset($currentSettings['mfa_allow_webauthn_security_key']) ? (string)$currentSettings['mfa_allow_webauthn_security_key'] : null, $mfaAllowWebauthnSecurityKey);
+
+        $settingModel->set('captcha_enabled', $captchaEnabled);
+        $audit->recordSettingChange($req, 'system', 'captcha_enabled', isset($currentSettings['captcha_enabled']) ? (string)$currentSettings['captcha_enabled'] : null, $captchaEnabled);
 
         Setting::clearCache();
         Session::flash('success', 'Settings updated successfully.');
@@ -191,6 +213,8 @@ class AdminController
         }
 
         $settingModel = new Setting();
+        $currentSettings = $settingModel->all();
+        $audit = new AuditEvent();
 
         $fields = [
             'smtp_host',
@@ -204,18 +228,25 @@ class AdminController
         foreach ($fields as $field) {
             $value = $req->post($field);
             if ($value !== null) {
-                $settingModel->set($field, (string)$value);
+                $newValue = (string)$value;
+                $oldValue = isset($currentSettings[$field]) ? (string)$currentSettings[$field] : null;
+                $settingModel->set($field, $newValue);
+                $audit->recordSettingChange($req, 'system', $field, $oldValue, $newValue);
             }
         }
 
         // Password: only update when a non-empty value is submitted
         $password = $req->post('smtp_password');
         if ($password !== null && $password !== '') {
+            $oldMasked = ($currentSettings['smtp_password'] ?? '') !== '' ? '[set]' : null;
             $settingModel->set('smtp_password', $password);
+            $audit->recordSettingChange($req, 'system', 'smtp_password', $oldMasked, '[set]');
         }
 
         // Checkbox → '1' when checked, '0' otherwise
-        $settingModel->set('smtp_logging', $req->post('smtp_logging') === '1' ? '1' : '0');
+        $smtpLogging = $req->post('smtp_logging') === '1' ? '1' : '0';
+        $settingModel->set('smtp_logging', $smtpLogging);
+        $audit->recordSettingChange($req, 'system', 'smtp_logging', isset($currentSettings['smtp_logging']) ? (string)$currentSettings['smtp_logging'] : null, $smtpLogging);
 
         Setting::clearCache();
         Session::flash('success', 'Email settings updated successfully.');
