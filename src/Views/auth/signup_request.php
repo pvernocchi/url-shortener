@@ -6,12 +6,12 @@
                 <form method="POST" action="/signup">
                     <?= \App\Core\Csrf::field() ?>
                     <div class="mb-3">
-                        <label class="form-label">Name</label>
-                        <input type="text" name="name" class="form-control" required>
+                        <label for="signup_name" class="form-label">Name</label>
+                        <input id="signup_name" type="text" name="name" class="form-control" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Email address</label>
-                        <input type="email" name="email" class="form-control" required>
+                        <label for="signup_email" class="form-label">Email address</label>
+                        <input id="signup_email" type="email" name="email" class="form-control" required>
                     </div>
                     <button type="submit" class="btn btn-primary w-100">
                         Send invitation link

@@ -134,14 +134,16 @@ class LinkController
 
         $userEmail = (string)Session::get('user_email', '');
         if ($userEmail !== '') {
+            $safeShortUrl    = $this->sanitizeForEmailBody($shortUrl);
+            $safeOriginalUrl = $this->sanitizeForEmailBody($originalUrl);
             try {
                 $mailer = Mailer::fromSettings(new Setting());
                 $mailer->send(
                     $userEmail,
                     'Your new shortened URL',
                     "Your shortened URL is ready:\r\n\r\n"
-                    . "Short URL: {$shortUrl}\r\n"
-                    . "Original URL: {$originalUrl}\r\n"
+                    . "Short URL: {$safeShortUrl}\r\n"
+                    . "Original URL: {$safeOriginalUrl}\r\n"
                 );
             } catch (\Throwable $e) {
                 Session::flash('error', 'Link created, but confirmation email could not be sent: ' . $e->getMessage());
@@ -318,5 +320,11 @@ class LinkController
             Session::flash('error', 'Access denied. Only administrators can manage existing links.');
             $res->redirect('/admin/links/create');
         }
+    }
+
+    private function sanitizeForEmailBody(string $value): string
+    {
+        $value = preg_replace('/[\r\n\t]+/', ' ', $value) ?? '';
+        return trim($value);
     }
 }

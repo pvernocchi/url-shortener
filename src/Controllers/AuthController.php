@@ -156,14 +156,16 @@ class AuthController
 
         $baseUrl = rtrim((string)Config::get('app.url', ''), '/');
         $link    = $baseUrl . '/signup/complete?token=' . urlencode($token);
+        $safeName = $this->sanitizeForEmailBody($name);
+        $safeLink = $this->sanitizeForEmailBody($link);
 
         try {
             $mailer = Mailer::fromSettings(new Setting());
             $mailer->send(
                 $email,
                 'Complete your account setup',
-                "Hello {$name},\r\n\r\n"
-                . "Use this link to complete your account setup:\r\n{$link}\r\n\r\n"
+                "Hello {$safeName},\r\n\r\n"
+                . "Use this link to complete your account setup:\r\n{$safeLink}\r\n\r\n"
                 . "This invitation expires in 24 hours."
             );
         } catch (\Throwable $e) {
@@ -250,5 +252,11 @@ class AuthController
 
         Session::flash('success', 'Account created successfully. You can now sign in.');
         $res->redirect('/login');
+    }
+
+    private function sanitizeForEmailBody(string $value): string
+    {
+        $value = preg_replace('/[\r\n\t]+/', ' ', $value) ?? '';
+        return trim($value);
     }
 }

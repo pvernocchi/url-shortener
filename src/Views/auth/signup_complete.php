@@ -10,12 +10,12 @@
                     <?= \App\Core\Csrf::field() ?>
                     <input type="hidden" name="token" value="<?= e($token ?? '') ?>">
                     <div class="mb-3">
-                        <label class="form-label">Password</label>
-                        <input type="password" name="password" class="form-control" minlength="8" required>
+                        <label for="signup_password" class="form-label">Password</label>
+                        <input id="signup_password" type="password" name="password" class="form-control" minlength="8" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Confirm password</label>
-                        <input type="password" name="password_confirm" class="form-control" minlength="8" required>
+                        <label for="signup_password_confirm" class="form-label">Confirm password</label>
+                        <input id="signup_password_confirm" type="password" name="password_confirm" class="form-control" minlength="8" required>
                     </div>
                     <button type="submit" class="btn btn-primary w-100">
                         Create account
