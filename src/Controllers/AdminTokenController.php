@@ -90,7 +90,7 @@ class AdminTokenController
 
         $id = (int)($params['id'] ?? 0);
         if ($id <= 0) {
-            Session::flash('error', 'Invalid token id.');
+            Session::flash('error', 'Invalid token ID.');
             $res->redirect('/admin/tokens');
             return;
         }
@@ -114,7 +114,7 @@ class AdminTokenController
 
         $id = (int)($params['id'] ?? 0);
         if ($id <= 0) {
-            Session::flash('error', 'Invalid token id.');
+            Session::flash('error', 'Invalid token ID.');
             $res->redirect('/admin/tokens');
             return;
         }
