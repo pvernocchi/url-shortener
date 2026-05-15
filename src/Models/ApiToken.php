@@ -24,7 +24,7 @@ class ApiToken
      */
     public function create(int $userId, string $name, array $scopes = ['read', 'write']): array
     {
-        $rawToken  = bin2hex(random_bytes(32));
+        $rawToken  = self::TOKEN_PREFIX . bin2hex(random_bytes(32));
         $tokenHash = self::hashToken($rawToken);
 
         $id = $this->db->insert($this->table, [

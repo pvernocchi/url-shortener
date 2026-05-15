@@ -14,13 +14,19 @@
         <code id="newTokenValue"><?= e($newTokenPlaintext) ?></code>
         <button type="button" class="btn btn-sm btn-outline-success" onclick="copyNewToken()">Copy</button>
     </div>
+    <small id="copyTokenStatus" class="d-block mt-2 text-muted"></small>
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 </div>
 <script>
 function copyNewToken() {
     const token = document.getElementById('newTokenValue')?.textContent || '';
+    const status = document.getElementById('copyTokenStatus');
     if (!token) return;
-    navigator.clipboard.writeText(token);
+    navigator.clipboard.writeText(token).then(() => {
+        if (status) status.textContent = 'Token copied to clipboard.';
+    }).catch(() => {
+        if (status) status.textContent = 'Unable to copy automatically. Please copy the token manually.';
+    });
 }
 </script>
 <?php endif; ?>
@@ -96,4 +102,3 @@ function copyNewToken() {
         </table>
     </div>
 </div>
-
