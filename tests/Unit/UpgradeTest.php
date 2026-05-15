@@ -17,4 +17,19 @@ class UpgradeTest extends TestCase
     {
         $this->assertTrue(Upgrade::needsVersionUpdate('0.2.0', '0.1.0'));
     }
+
+    public function testNeedsVersionUpdateReturnsTrueWhenStoredVersionIsNull(): void
+    {
+        $this->assertTrue(Upgrade::needsVersionUpdate('0.1.0', null));
+    }
+
+    public function testNeedsVersionUpdateTrimsValuesBeforeComparing(): void
+    {
+        $this->assertFalse(Upgrade::needsVersionUpdate(' 0.1.0 ', '0.1.0'));
+    }
+
+    public function testNeedsVersionUpdateTreatsDifferentVersionFormatsAsDifferent(): void
+    {
+        $this->assertTrue(Upgrade::needsVersionUpdate('1.0.0', '1.0'));
+    }
 }

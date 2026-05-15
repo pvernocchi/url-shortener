@@ -37,7 +37,7 @@ class Upgrade
         }
     }
 
-    public static function syncVersion(array $executedMigrations = []): void
+    public static function syncVersion(): void
     {
         $codeVersion   = self::getCodeVersion();
         $storedVersion = self::getStoredVersion();
@@ -67,7 +67,7 @@ class Upgrade
     {
         $db       = Database::getInstance();
         $executed = (new Migration())->run($db, ROOT_PATH . '/migrations');
-        self::syncVersion($executed);
+        self::syncVersion();
         return $executed;
     }
 }

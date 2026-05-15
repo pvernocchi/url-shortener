@@ -19,6 +19,7 @@ class CronController
 
         if (empty($cronKey) || !hash_equals($cronKey, $providedKey)) {
             $res->json(['error' => 'Unauthorized.'], 401);
+            return;
         }
 
         $results = [];
@@ -45,6 +46,7 @@ class CronController
 
         if (empty($cronKey) || !hash_equals($cronKey, $providedKey)) {
             $res->json(['error' => 'Forbidden.'], 403);
+            return;
         }
 
         try {
