@@ -14,7 +14,7 @@
                         <input id="signup_email" type="email" name="email" class="form-control" required>
                     </div>
                     <button type="submit" class="btn btn-primary w-100">
-                        Send invitation link
+                        Request invitation
                     </button>
                 </form>
                 <div class="text-center mt-3">

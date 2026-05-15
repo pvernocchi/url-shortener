@@ -121,7 +121,7 @@ class App
         $r->add('POST', '/admin/tokens',       [AdminTokenController::class, 'store']);
         $r->add('POST', '/admin/tokens/{id}/revoke', [AdminTokenController::class, 'revoke']);
         $r->add('POST', '/admin/tokens/{id}/delete', [AdminTokenController::class, 'delete']);
-        $r->add('GET',  '/admin/users', [AdminUserController::class, 'index']);
+        $r->add('GET',  '/admin/users',             [AdminUserController::class, 'index']);
         $r->add('POST', '/admin/users/{id}/promote', [AdminUserController::class, 'promote']);
         $r->add('POST', '/admin/upgrade',      [AdminController::class, 'runUpgrade']);
 

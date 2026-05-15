@@ -134,7 +134,7 @@ class LinkController
 
         $userEmail = (string)Session::get('user_email', '');
         if ($userEmail !== '') {
-            $safeShortUrl    = $this->sanitizeForEmailBody($shortUrl);
+            $safeShortUrl = $this->sanitizeForEmailBody($shortUrl);
             $safeOriginalUrl = $this->sanitizeForEmailBody($originalUrl);
             try {
                 $mailer = Mailer::fromSettings(new Setting());
@@ -317,7 +317,7 @@ class LinkController
     private function ensureAdminCanManageExistingLinks(Response $res): void
     {
         if (!App::isAdmin()) {
-            Session::flash('error', 'Access denied. Only administrators can manage existing links.');
+            Session::flash('error', 'You can only create new links. Managing existing links requires administrator access.');
             $res->redirect('/admin/links/create');
         }
     }
