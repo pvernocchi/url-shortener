@@ -150,6 +150,5 @@ class AdminTokenController
             }
         }
         $res->redirect($fallback);
-        return;
     }
 }
