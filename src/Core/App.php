@@ -5,6 +5,7 @@ namespace App\Core;
 
 use App\Controllers\AdminController;
 use App\Controllers\AdminTokenController;
+use App\Controllers\AdminUserController;
 use App\Controllers\ApiController;
 use App\Controllers\AuthController;
 use App\Controllers\CronController;
@@ -98,9 +99,13 @@ class App
         $r->add('GET',  '/install/complete', [InstallController::class, 'showComplete']);
 
         // Auth
-        $r->add('GET',  '/login',  [AuthController::class, 'showLogin']);
-        $r->add('POST', '/login',  [AuthController::class, 'handleLogin']);
-        $r->add('POST', '/logout', [AuthController::class, 'handleLogout']);
+        $r->add('GET',  '/login',           [AuthController::class, 'showLogin']);
+        $r->add('POST', '/login',           [AuthController::class, 'handleLogin']);
+        $r->add('POST', '/logout',          [AuthController::class, 'handleLogout']);
+        $r->add('GET',  '/signup',          [AuthController::class, 'showSignupRequest']);
+        $r->add('POST', '/signup',          [AuthController::class, 'handleSignupRequest']);
+        $r->add('GET',  '/signup/complete', [AuthController::class, 'showSignupComplete']);
+        $r->add('POST', '/signup/complete', [AuthController::class, 'handleSignupComplete']);
 
         // Admin
         $r->add('GET',  '/admin',              [AdminController::class, 'dashboard']);
@@ -116,6 +121,8 @@ class App
         $r->add('POST', '/admin/tokens',       [AdminTokenController::class, 'store']);
         $r->add('POST', '/admin/tokens/{id}/revoke', [AdminTokenController::class, 'revoke']);
         $r->add('POST', '/admin/tokens/{id}/delete', [AdminTokenController::class, 'delete']);
+        $r->add('GET',  '/admin/users', [AdminUserController::class, 'index']);
+        $r->add('POST', '/admin/users/{id}/promote', [AdminUserController::class, 'promote']);
         $r->add('POST', '/admin/upgrade',      [AdminController::class, 'runUpgrade']);
 
         // Links

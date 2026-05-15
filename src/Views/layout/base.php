@@ -19,6 +19,7 @@
 </head>
 <body>
 <?php $isLoggedIn = \App\Core\Session::has('user_id'); ?>
+<?php $isAdmin = \App\Core\App::isAdmin(); ?>
 <?php if ($isLoggedIn): ?>
 <div class="d-flex">
     <!-- Sidebar -->
@@ -27,16 +28,21 @@
             <i class="bi bi-link-45deg"></i> URL Shortener
         </a>
         <ul class="nav flex-column gap-1">
+            <?php if ($isAdmin): ?>
             <li class="nav-item">
                 <a class="nav-link px-3 py-2" href="/admin"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
             </li>
             <li class="nav-item">
                 <a class="nav-link px-3 py-2" href="/admin/links"><i class="bi bi-link me-2"></i>Links</a>
             </li>
+            <?php endif; ?>
             <li class="nav-item">
                 <a class="nav-link px-3 py-2" href="/admin/links/create"><i class="bi bi-plus-circle me-2"></i>New Link</a>
             </li>
-            <?php if (\App\Core\App::isAdmin()): ?>
+            <?php if ($isAdmin): ?>
+            <li class="nav-item">
+                <a class="nav-link px-3 py-2" href="/admin/users"><i class="bi bi-people me-2"></i>Users</a>
+            </li>
             <li class="nav-item">
                 <a class="nav-link px-3 py-2" href="/admin/settings"><i class="bi bi-gear me-2"></i>Settings</a>
             </li>
@@ -75,10 +81,13 @@
                 </button>
                 <div class="collapse navbar-collapse" id="mobileNav">
                     <ul class="navbar-nav">
+                        <?php if ($isAdmin): ?>
                         <li class="nav-item"><a class="nav-link" href="/admin">Dashboard</a></li>
                         <li class="nav-item"><a class="nav-link" href="/admin/links">Links</a></li>
+                        <?php endif; ?>
                         <li class="nav-item"><a class="nav-link" href="/admin/links/create">New Link</a></li>
-                        <?php if (\App\Core\App::isAdmin()): ?>
+                        <?php if ($isAdmin): ?>
+                        <li class="nav-item"><a class="nav-link" href="/admin/users">Users</a></li>
                         <li class="nav-item"><a class="nav-link" href="/admin/settings">Settings</a></li>
                         <li class="nav-item"><a class="nav-link" href="/admin/settings/email">Email</a></li>
                         <li class="nav-item"><a class="nav-link" href="/admin/tokens">API Tokens</a></li>
