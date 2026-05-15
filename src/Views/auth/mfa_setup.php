@@ -14,6 +14,11 @@
                     <code class="small"><?= e($totpProvisioningUri ?? '') ?></code>
                 </div>
 
+                <div class="mb-3 text-center">
+                    <div id="totp-qr" class="d-inline-block"></div>
+                    <div class="small text-muted mt-1">Scan with your authenticator app</div>
+                </div>
+
                 <?php if (($allowWebauthnPlatform ?? false) || ($allowWebauthnYubikey ?? false)): ?>
                 <div class="alert alert-info small">
                     WebAuthn options enabled by policy:
@@ -43,3 +48,18 @@
         </div>
     </div>
 </div>
+
+<?php if (($totpProvisioningUri ?? '') !== ''): ?>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"
+        integrity="sha384-OLBgp1GsljhM2TJ+sbHjaiH9txEUvgdDTAzHv2P24donTt6/529l+9Ua0vFImLlb"
+        crossorigin="anonymous"></script>
+<script>
+(function () {
+    var uri = <?= json_encode($totpProvisioningUri ?? '') ?>;
+    var el  = document.getElementById('totp-qr');
+    if (el && uri) {
+        new QRCode(el, { text: uri, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.M });
+    }
+}());
+</script>
+<?php endif; ?>

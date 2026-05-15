@@ -110,8 +110,12 @@ class App
         $r->add('POST', '/signup',          [AuthController::class, 'handleSignupRequest']);
         $r->add('GET',  '/signup/complete', [AuthController::class, 'showSignupComplete']);
         $r->add('POST', '/signup/complete', [AuthController::class, 'handleSignupComplete']);
-        $r->add('GET',  '/admin/security',  [AuthController::class, 'showSecuritySettings']);
-        $r->add('POST', '/admin/security',  [AuthController::class, 'updateSecuritySettings']);
+        $r->add('GET',  '/admin/security',                    [AuthController::class, 'showSecuritySettings']);
+        $r->add('POST', '/admin/security',                    [AuthController::class, 'updateSecuritySettings']);
+        $r->add('GET',  '/admin/security/webauthn/challenge', [AuthController::class, 'webauthnChallenge']);
+        $r->add('POST', '/admin/security/webauthn/register',  [AuthController::class, 'webauthnRegister']);
+        $r->add('GET',  '/login/webauthn/challenge',          [AuthController::class, 'webauthnLoginChallenge']);
+        $r->add('POST', '/login/webauthn/verify',             [AuthController::class, 'webauthnLoginVerify']);
         $r->add('GET',  '/admin/profile',   [AuthController::class, 'showProfileSettings']);
         $r->add('POST', '/admin/profile',   [AuthController::class, 'updateProfileSettings']);
 
