@@ -40,12 +40,11 @@ class ApiTokenIssuer
             return 'read';
         }
 
-        usort($unique, static function (string $a, string $b): int {
-            $order = ['read' => 0, 'write' => 1];
+        $order = ['read' => 0, 'write' => 1];
+        usort($unique, static function (string $a, string $b) use ($order): int {
             return $order[$a] <=> $order[$b];
         });
 
         return implode(',', $unique);
     }
 }
-
