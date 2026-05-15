@@ -44,4 +44,3 @@ class AdminTokenControllerTest extends TestCase
         $this->assertSame('read', ApiTokenIssuer::normalizeScopes(['admin', 'read', '']));
     }
 }
-
