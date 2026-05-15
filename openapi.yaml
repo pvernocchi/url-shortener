@@ -1,0 +1,266 @@
+openapi: 3.0.3
+info:
+  title: URL Shortener API
+  description: REST API for managing shortened links.
+  version: 0.1.0
+servers:
+  - url: https://your-shortener.example
+security:
+  - bearerAuth: []
+tags:
+  - name: Links
+paths:
+  /api/v1/links:
+    get:
+      tags: [Links]
+      summary: List links
+      operationId: listLinks
+      description: Returns links owned by the authenticated user. Requires `read` scope.
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number (1-based).
+      responses:
+        '200':
+          description: Links retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LinkListResponse'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+    post:
+      tags: [Links]
+      summary: Create link
+      operationId: createLink
+      description: Creates a new short link for the authenticated user. Requires `write` scope.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LinkCreateRequest'
+      responses:
+        '201':
+          description: Link created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LinkResponse'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '409':
+          description: Requested custom code already exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validation failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/v1/links/{code}:
+    get:
+      tags: [Links]
+      summary: Get link by code
+      operationId: getLink
+      description: Returns a link by short code if it belongs to the authenticated user. Requires `read` scope.
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Link retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LinkResponse'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          description: Link not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/v1/links/{id}:
+    delete:
+      tags: [Links]
+      summary: Delete link by id
+      operationId: deleteLink
+      description: Deletes a link by id if it belongs to the authenticated user. Requires `write` scope.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Link deleted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          description: Link not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: API Token
+  responses:
+    Error401:
+      description: Missing, invalid, or revoked bearer token.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Error403:
+      description: API disabled, insufficient scope, or resource not authorized.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    Link:
+      type: object
+      required:
+        - id
+        - owner_id
+        - short_code
+        - original_url
+        - redirect_type
+        - is_active
+        - click_count
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: integer
+        owner_id:
+          type: integer
+          nullable: true
+        short_code:
+          type: string
+        original_url:
+          type: string
+        title:
+          type: string
+          nullable: true
+        redirect_type:
+          type: integer
+          enum: [301, 302]
+        expires_at:
+          type: string
+          nullable: true
+          description: Expiration datetime accepted by PHP `strtotime` and stored as `Y-m-d H:i:s`.
+          example: '2026-12-31 23:59:59'
+        max_clicks:
+          type: integer
+          nullable: true
+        click_count:
+          type: integer
+          minimum: 0
+        is_active:
+          type: integer
+          enum: [0, 1]
+        created_at:
+          type: string
+          description: Datetime in `Y-m-d H:i:s` format.
+          example: '2026-05-15 20:46:00'
+        updated_at:
+          type: string
+          description: Datetime in `Y-m-d H:i:s` format.
+          example: '2026-05-15 20:46:00'
+    LinkCreateRequest:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          description: URL to shorten.
+        code:
+          type: string
+          description: Optional custom short code.
+        title:
+          type: string
+          maxLength: 255
+        redirect_type:
+          type: integer
+          enum: [301, 302]
+          default: 302
+        expires_at:
+          type: string
+          description: Optional datetime parsed by PHP `strtotime`.
+          example: '2026-12-31 23:59:59'
+    LinkResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/Link'
+    LinkListResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Link'
+        meta:
+          type: object
+          required:
+            - page
+            - total
+          properties:
+            page:
+              type: integer
+              minimum: 1
+            total:
+              type: integer
+              minimum: 0
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+    Message:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string

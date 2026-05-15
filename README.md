@@ -15,3 +15,9 @@ curl -X POST "https://your-shortener.example/api/v1/links" \
   -H "Content-Type: application/json" \
   -d '{"url":"https://example.com","redirect_type":302}'
 ```
+
+## API Specification
+
+A machine-readable OpenAPI specification is available at [`openapi.yaml`](openapi.yaml).
+
+You can view it with Swagger UI, Redoc, or by importing it into https://editor.swagger.io.
