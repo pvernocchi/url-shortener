@@ -14,6 +14,7 @@ use App\Core\Upgrade;
 use App\Core\View;
 use App\Models\Setting;
 use App\Models\User;
+use App\Models\UserSetting;
 
 class InstallController
 {
@@ -192,13 +193,14 @@ class InstallController
         // Create admin user
         try {
             $userModel = new User();
-            $userModel->create([
+            $adminId = $userModel->create([
                 'email'         => $adminEmail,
                 'password_hash' => password_hash($adminPass, PASSWORD_BCRYPT),
                 'name'          => $adminName,
                 'role'          => 'admin',
                 'status'        => 'active',
             ]);
+            (new UserSetting())->ensureDefaultsForUser($adminId);
         } catch (\Throwable $e) {
             Session::flash('errors', ['Failed to create admin user: ' . $e->getMessage()]);
             $res->redirect('/install/step2');

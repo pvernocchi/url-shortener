@@ -11,9 +11,11 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Core\Session;
 use App\Core\View;
+use App\Models\AuditEvent;
 use App\Models\Setting;
 use App\Models\SignupInvitation;
 use App\Models\User;
+use App\Models\UserSetting;
 use App\Services\CaptchaVerifier;
 use App\Services\Mailer;
 use App\Services\Totp;
@@ -21,6 +23,7 @@ use App\Services\Totp;
 class AuthController
 {
     private const INVITATION_TTL = 86400;
+    private const MIN_PASSWORD_LENGTH = 8;
 
     public function showLogin(Request $req, Response $res): void
     {
@@ -132,8 +135,10 @@ class AuthController
 
         $totpEnabled = $settingModel->get('mfa_allow_totp', '1') === '1';
         $totpSecret  = (string)($user['mfa_totp_secret'] ?? '');
+        $userSettingModel = new UserSetting();
+        $userMfaEnabled = $userSettingModel->isEnabled((int)$user['id'], 'mfa_totp_enabled', false);
 
-        if ($totpEnabled && $totpSecret !== '') {
+        if ($totpEnabled && $userMfaEnabled && $totpSecret !== '') {
             $this->storePendingUser($user, $mfaPolicy === 'required');
             Session::set('pending_mfa_type', 'totp');
             $res->redirect('/login/mfa');
@@ -167,6 +172,7 @@ class AuthController
 
         $settingModel = new Setting();
         $totpAllowed = $settingModel->get('mfa_allow_totp', '1') === '1';
+        $userSettingModel = new UserSetting();
         $userModel = new User();
         $user = $userModel->findById((int)Session::get('user_id'));
         if (!$user) {
@@ -174,8 +180,10 @@ class AuthController
             $res->redirect('/login');
         }
 
+        $userMfaEnabled = $userSettingModel->isEnabled((int)$user['id'], 'mfa_totp_enabled', false);
+        $totpConfigured = !empty($user['mfa_totp_secret']);
         $totpSecret = '';
-        if ($totpAllowed && empty($user['mfa_totp_secret'])) {
+        if ($totpAllowed && (!$userMfaEnabled || !$totpConfigured)) {
             $totpSecret = (string)Session::get('account_totp_secret', '');
             if ($totpSecret === '') {
                 $totpSecret = (new Totp())->generateSecret();
@@ -187,7 +195,8 @@ class AuthController
         $html = View::renderWithLayout('auth/security_settings', [
             'title'               => 'Security Settings',
             'totpAllowed'         => $totpAllowed,
-            'totpEnabled'         => !empty($user['mfa_totp_secret']),
+            'totpEnabled'         => $userMfaEnabled && $totpConfigured,
+            'totpConfigured'      => $totpConfigured,
             'totpSecret'          => $totpSecret,
             'totpProvisioningUri' => $totpSecret !== '' ? (new Totp())->provisioningUri($issuer, (string)$user['email'], $totpSecret) : '',
         ]);
@@ -205,15 +214,20 @@ class AuthController
         $action = (string)$req->post('action', '');
         $userId = (int)Session::get('user_id');
         $userModel = new User();
+        $userSettingModel = new UserSetting();
         $user = $userModel->findById($userId);
         if (!$user) {
             Session::destroy();
             $res->redirect('/login');
         }
 
+        $oldMfaEnabled = $userSettingModel->isEnabled($userId, 'mfa_totp_enabled', false);
+
         if ($action === 'disable_totp') {
             $userModel->clearTotpSecret($userId);
             Session::remove('account_totp_secret');
+            $userSettingModel->set($userId, 'mfa_totp_enabled', '0');
+            (new AuditEvent())->recordSettingChange($req, 'profile', 'mfa_totp_enabled', $oldMfaEnabled ? '1' : '0', '0', $userId);
             Session::flash('success', 'TOTP has been disabled.');
             $res->redirect('/admin/security');
         }
@@ -227,13 +241,107 @@ class AuthController
             }
 
             $userModel->setTotpSecret($userId, $secret);
+            $userSettingModel->set($userId, 'mfa_totp_enabled', '1');
             Session::remove('account_totp_secret');
+            (new AuditEvent())->recordSettingChange($req, 'profile', 'mfa_totp_enabled', $oldMfaEnabled ? '1' : '0', '1', $userId);
             Session::flash('success', 'TOTP has been enabled.');
             $res->redirect('/admin/security');
         }
 
         Session::flash('error', 'Unsupported security action.');
         $res->redirect('/admin/security');
+    }
+
+    public function showProfileSettings(Request $req, Response $res): void
+    {
+        App::requireAuth();
+
+        $userId = (int)Session::get('user_id');
+        if (!(new UserSetting())->isEnabled($userId, 'profile_edit_enabled', false)) {
+            Session::flash('error', 'Profile editing is disabled for your account.');
+            $res->redirect('/admin');
+        }
+
+        $user = (new User())->findById($userId);
+        if (!$user) {
+            Session::destroy();
+            $res->redirect('/login');
+        }
+
+        $html = View::renderWithLayout('auth/profile_settings', [
+            'title'             => 'Profile Settings',
+            'user'              => $user,
+            'minPasswordLength' => self::MIN_PASSWORD_LENGTH,
+        ]);
+        $res->html($html);
+    }
+
+    public function updateProfileSettings(Request $req, Response $res): void
+    {
+        App::requireAuth();
+        if (!Csrf::verify((string)$req->post('_csrf_token'))) {
+            Session::flash('error', 'Invalid CSRF token.');
+            $res->redirect('/admin/profile');
+        }
+
+        $userId = (int)Session::get('user_id');
+        if (!(new UserSetting())->isEnabled($userId, 'profile_edit_enabled', false)) {
+            Session::flash('error', 'Profile editing is disabled for your account.');
+            $res->redirect('/admin');
+        }
+
+        $userModel = new User();
+        $user = $userModel->findById($userId);
+        if (!$user) {
+            Session::destroy();
+            $res->redirect('/login');
+        }
+
+        $name = trim((string)$req->post('name', ''));
+        if ($name === '' || mb_strlen($name) > 100) {
+            Session::flash('error', 'Name is required and must be at most 100 characters.');
+            $res->redirect('/admin/profile');
+        }
+
+        $password = (string)$req->post('password', '');
+        $confirmPassword = (string)$req->post('password_confirm', '');
+        if ($password !== '' || $confirmPassword !== '') {
+            if (mb_strlen($password) < self::MIN_PASSWORD_LENGTH) {
+                Session::flash('error', 'Password must be at least ' . self::MIN_PASSWORD_LENGTH . ' characters.');
+                $res->redirect('/admin/profile');
+            }
+            if ($password !== $confirmPassword) {
+                Session::flash('error', 'Passwords do not match.');
+                $res->redirect('/admin/profile');
+            }
+        }
+
+        $updates = [];
+        if ($name !== (string)$user['name']) {
+            $updates['name'] = $name;
+        }
+        if ($password !== '') {
+            $updates['password_hash'] = password_hash($password, PASSWORD_BCRYPT);
+        }
+
+        if ($updates === []) {
+            Session::flash('success', 'No profile changes were made.');
+            $res->redirect('/admin/profile');
+        }
+
+        $userModel->update($userId, $updates);
+
+        $audit = new AuditEvent();
+        if (isset($updates['name'])) {
+            $audit->recordSettingChange($req, 'profile', 'name', (string)$user['name'], $name, $userId);
+            Session::set('user_name', $name);
+        }
+        if (isset($updates['password_hash'])) {
+            $audit->recordSettingChange($req, 'profile', 'password', null, '[changed]', $userId);
+        }
+
+        Session::flash('success', 'Profile updated successfully.');
+        $res->redirect('/admin/profile');
     }
 
     public function showMfaChallenge(Request $req, Response $res): void
@@ -353,6 +461,7 @@ class AuthController
         $userId = (int)Session::get('pending_user_id');
         $userModel = new User();
         $userModel->setTotpSecret($userId, $secret);
+        (new UserSetting())->set($userId, 'mfa_totp_enabled', '1');
         $user = $userModel->findById($userId);
         if (!$user) {
             $this->clearPendingAuth();
@@ -473,8 +582,8 @@ class AuthController
             Session::flash('error', 'Invalid invitation.');
             $res->redirect('/signup');
         }
-        if (strlen($password) < 8) {
-            Session::flash('error', 'Password must be at least 8 characters.');
+        if (mb_strlen($password) < self::MIN_PASSWORD_LENGTH) {
+            Session::flash('error', 'Password must be at least ' . self::MIN_PASSWORD_LENGTH . ' characters.');
             $res->redirect('/signup/complete?token=' . urlencode($token));
         }
         if ($password !== $confirmPassword) {
@@ -495,13 +604,14 @@ class AuthController
             $res->redirect('/login');
         }
 
-        $userModel->create([
+        $newUserId = $userModel->create([
             'name'     => $invitation['name'],
             'email'    => $invitation['email'],
             'password' => $password,
             'role'     => 'user',
             'status'   => 'active',
         ]);
+        (new UserSetting())->ensureDefaultsForUser($newUserId);
         $inviteModel->markUsed((int)$invitation['id']);
 
         Session::flash('success', 'Account created successfully. You can now sign in.');

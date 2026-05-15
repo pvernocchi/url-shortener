@@ -112,6 +112,8 @@ class App
         $r->add('POST', '/signup/complete', [AuthController::class, 'handleSignupComplete']);
         $r->add('GET',  '/admin/security',  [AuthController::class, 'showSecuritySettings']);
         $r->add('POST', '/admin/security',  [AuthController::class, 'updateSecuritySettings']);
+        $r->add('GET',  '/admin/profile',   [AuthController::class, 'showProfileSettings']);
+        $r->add('POST', '/admin/profile',   [AuthController::class, 'updateProfileSettings']);
 
         // Admin
         $r->add('GET',  '/admin',              [AdminController::class, 'dashboard']);

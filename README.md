@@ -25,5 +25,6 @@ You can view it with Swagger UI, Redoc, or by importing it into https://editor.s
 ## Login Security
 
 - Configure global MFA policy and allowed factors in **Admin → Settings**.
-- Users can enroll TOTP in **Security** (supports Google Authenticator / Microsoft Authenticator).
+- Users can manage profile settings in **Profile**.
+- Users can opt in to TOTP in **Security** when MFA is globally enabled (supports Google Authenticator / Microsoft Authenticator).
 - Login CAPTCHA supports **Google reCAPTCHA** and **Cloudflare Turnstile**.

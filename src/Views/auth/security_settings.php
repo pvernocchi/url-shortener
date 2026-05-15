@@ -9,6 +9,9 @@
                 <?php if (!($totpAllowed ?? false)): ?>
                     <div class="alert alert-warning mb-0">
                         TOTP is disabled by administrator policy.
+                        <?php if (($totpEnabled ?? false) || ($totpConfigured ?? false)): ?>
+                            Your current MFA preference is preserved and will become active again when re-enabled globally.
+                        <?php endif; ?>
                     </div>
                 <?php elseif ($totpEnabled ?? false): ?>
                     <p class="text-muted">Your account currently requires an authenticator code during login.</p>
