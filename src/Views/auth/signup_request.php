@@ -10,7 +10,7 @@
                         <input type="text" name="name" class="form-control" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">E-mail address</label>
+                        <label class="form-label">Email address</label>
                         <input type="email" name="email" class="form-control" required>
                     </div>
                     <button type="submit" class="btn btn-primary w-100">

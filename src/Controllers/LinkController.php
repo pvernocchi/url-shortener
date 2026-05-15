@@ -144,7 +144,7 @@ class LinkController
                     . "Original URL: {$originalUrl}\r\n"
                 );
             } catch (\Throwable $e) {
-                Session::flash('error', 'Link created, but confirmation e-mail could not be sent: ' . $e->getMessage());
+                Session::flash('error', 'Link created, but confirmation email could not be sent: ' . $e->getMessage());
             }
         }
 

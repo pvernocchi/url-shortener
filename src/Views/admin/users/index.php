@@ -8,7 +8,7 @@
             <thead class="table-light">
                 <tr>
                     <th>Name</th>
-                    <th>E-mail</th>
+                    <th>Email</th>
                     <th>Role</th>
                     <th>Status</th>
                     <th class="text-end">Actions</th>

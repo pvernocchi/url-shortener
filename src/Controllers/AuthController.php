@@ -128,11 +128,11 @@ class AuthController
         $email = trim((string)$req->post('email', ''));
 
         if ($name === '' || $email === '') {
-            Session::flash('error', 'Name and e-mail are required.');
+            Session::flash('error', 'Name and email are required.');
             $res->redirect('/signup');
         }
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            Session::flash('error', 'Please provide a valid e-mail address.');
+            Session::flash('error', 'Please provide a valid email address.');
             $res->redirect('/signup');
         }
 
@@ -165,7 +165,7 @@ class AuthController
                 . "This invitation expires in 24 hours."
             );
         } catch (\Throwable $e) {
-            Session::flash('error', 'Could not send invitation e-mail: ' . $e->getMessage());
+            Session::flash('error', 'Could not send invitation email: ' . $e->getMessage());
             $res->redirect('/signup');
         }
 
