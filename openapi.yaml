@@ -181,6 +181,7 @@ components:
           type: string
           nullable: true
           description: Expiration datetime accepted by PHP `strtotime` and stored as `Y-m-d H:i:s`.
+          example: '2026-12-31 23:59:59'
         max_clicks:
           type: integer
           nullable: true
@@ -192,8 +193,12 @@ components:
           enum: [0, 1]
         created_at:
           type: string
+          description: Datetime in `Y-m-d H:i:s` format.
+          example: '2026-05-15 20:46:00'
         updated_at:
           type: string
+          description: Datetime in `Y-m-d H:i:s` format.
+          example: '2026-05-15 20:46:00'
     LinkCreateRequest:
       type: object
       required:
@@ -215,6 +220,7 @@ components:
         expires_at:
           type: string
           description: Optional datetime parsed by PHP `strtotime`.
+          example: '2026-12-31 23:59:59'
     LinkResponse:
       type: object
       required:
