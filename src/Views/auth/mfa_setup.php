@@ -17,7 +17,7 @@
                 <?php if (($allowWebauthnPlatform ?? false) || ($allowWebauthnYubikey ?? false)): ?>
                 <div class="alert alert-info small">
                     WebAuthn options enabled by policy:
-                    <?php if (($allowWebauthnPlatform ?? false)): ?>Windows Hello (TPM)<?php endif; ?>
+                    <?php if (($allowWebauthnPlatform ?? false)): ?> Windows Hello (TPM)<?php endif; ?>
                     <?php if (($allowWebauthnPlatform ?? false) && ($allowWebauthnYubikey ?? false)): ?>, <?php endif; ?>
                     <?php if (($allowWebauthnYubikey ?? false)): ?>YubiKey (security key)<?php endif; ?>.
                     TOTP enrollment is available in this release.

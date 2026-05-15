@@ -248,7 +248,7 @@ class AuthController
 
         $html = View::renderWithLayout('auth/mfa_challenge', [
             'title'       => 'Multi-factor authentication',
-            'pendingEmail'=> (string)Session::get('pending_user_email', ''),
+            'pendingEmail' => (string)Session::get('pending_user_email', ''),
         ]);
         $res->html($html);
     }
