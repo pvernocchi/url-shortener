@@ -16,9 +16,11 @@ use App\Models\Setting;
 use App\Models\SignupInvitation;
 use App\Models\User;
 use App\Models\UserSetting;
+use App\Models\WebAuthnCredential;
 use App\Services\CaptchaVerifier;
 use App\Services\Mailer;
 use App\Services\Totp;
+use App\Services\WebAuthn;
 
 class AuthController
 {
@@ -138,9 +140,24 @@ class AuthController
         $userSettingModel = new UserSetting();
         $userMfaEnabled = $userSettingModel->isEnabled((int)$user['id'], 'mfa_totp_enabled', false);
 
+        // Check for WebAuthn credentials
+        $webauthnPlatformAllowed = $settingModel->get('mfa_allow_webauthn_platform', '1') === '1';
+        $webauthnKeyAllowed      = $settingModel->get('mfa_allow_webauthn_security_key', '1') === '1';
+        $credModel               = new WebAuthnCredential();
+        $userCredentials         = (($webauthnPlatformAllowed || $webauthnKeyAllowed) && !empty($user['id']))
+            ? $credModel->findByUserId((int)$user['id'])
+            : [];
+
         if ($totpEnabled && $userMfaEnabled && $totpSecret !== '') {
             $this->storePendingUser($user, $mfaPolicy === 'required');
             Session::set('pending_mfa_type', 'totp');
+            Session::set('pending_has_webauthn', !empty($userCredentials) ? '1' : '0');
+            $res->redirect('/login/mfa');
+        }
+
+        if (!empty($userCredentials)) {
+            $this->storePendingUser($user, $mfaPolicy === 'required');
+            Session::set('pending_mfa_type', 'webauthn');
             $res->redirect('/login/mfa');
         }
 
@@ -192,13 +209,20 @@ class AuthController
         }
 
         $issuer = (string)$settingModel->get('site_name', Config::get('app.name', 'URL Shortener'));
+
+        $webauthnCredModel   = new WebAuthnCredential();
+        $webauthnCredentials = $webauthnCredModel->findByUserId((int)$user['id']);
+
         $html = View::renderWithLayout('auth/security_settings', [
-            'title'               => 'Security Settings',
-            'totpAllowed'         => $totpAllowed,
-            'totpEnabled'         => $userMfaEnabled && $totpConfigured,
-            'totpConfigured'      => $totpConfigured,
-            'totpSecret'          => $totpSecret,
-            'totpProvisioningUri' => $totpSecret !== '' ? (new Totp())->provisioningUri($issuer, (string)$user['email'], $totpSecret) : '',
+            'title'                   => 'Security Settings',
+            'totpAllowed'             => $totpAllowed,
+            'totpEnabled'             => $userMfaEnabled && $totpConfigured,
+            'totpConfigured'          => $totpConfigured,
+            'totpSecret'              => $totpSecret,
+            'totpProvisioningUri'     => $totpSecret !== '' ? (new Totp())->provisioningUri($issuer, (string)$user['email'], $totpSecret) : '',
+            'webauthnPlatformAllowed' => $settingModel->get('mfa_allow_webauthn_platform', '1') === '1',
+            'webauthnYubikeyAllowed'  => $settingModel->get('mfa_allow_webauthn_security_key', '1') === '1',
+            'webauthnCredentials'     => $webauthnCredentials,
         ]);
         $res->html($html);
     }
@@ -248,8 +272,207 @@ class AuthController
             $res->redirect('/admin/security');
         }
 
+        if ($action === 'delete_webauthn') {
+            $credId = (int)$req->post('credential_id', 0);
+            if ($credId > 0) {
+                (new WebAuthnCredential())->delete($credId, $userId);
+                (new AuditEvent())->recordSettingChange($req, 'profile', 'webauthn_credential_deleted', (string)$credId, '', $userId);
+                Session::flash('success', 'Security key removed.');
+            }
+            $res->redirect('/admin/security');
+        }
+
         Session::flash('error', 'Unsupported security action.');
         $res->redirect('/admin/security');
+    }
+
+    /**
+     * Return WebAuthn registration challenge (JSON).
+     * GET /admin/security/webauthn/challenge?type=platform|security_key
+     */
+    public function webauthnChallenge(Request $req, Response $res): void
+    {
+        App::requireAuth();
+
+        $type = in_array($req->get('type', ''), ['platform', 'security_key'], true)
+            ? (string)$req->get('type', 'security_key')
+            : 'security_key';
+
+        $settingKey = $type === 'platform' ? 'mfa_allow_webauthn_platform' : 'mfa_allow_webauthn_security_key';
+        if ((new Setting())->get($settingKey, '1') !== '1') {
+            $res->json(['error' => 'This authenticator type is disabled by administrator policy.'], 403);
+        }
+
+        $userId = (int)Session::get('user_id');
+        $user   = (new User())->findById($userId);
+        if (!$user) {
+            $res->json(['error' => 'User not found.'], 401);
+        }
+
+        $credModel = new WebAuthnCredential();
+        $existing  = $credModel->credentialIdsForUser($userId);
+
+        $webAuthn  = new WebAuthn();
+        $result    = $webAuthn->buildCreationOptions(
+            $userId,
+            (string)$user['email'],
+            (string)$user['name'],
+            $type,
+            $existing
+        );
+
+        Session::set('webauthn_register_challenge', $result['challenge']);
+        Session::set('webauthn_register_type', $type);
+
+        $res->json($result['options']);
+    }
+
+    /**
+     * Store a newly registered WebAuthn credential.
+     * POST /admin/security/webauthn/register (JSON body)
+     */
+    public function webauthnRegister(Request $req, Response $res): void
+    {
+        App::requireAuth();
+
+        $userId    = (int)Session::get('user_id');
+        $challenge = (string)Session::get('webauthn_register_challenge', '');
+        $type      = (string)Session::get('webauthn_register_type', 'security_key');
+
+        if ($challenge === '') {
+            $res->json(['error' => 'No pending registration challenge.'], 400);
+        }
+
+        $body = $req->json();
+        if (empty($body)) {
+            $res->json(['error' => 'Invalid JSON body.'], 400);
+        }
+
+        try {
+            $webAuthn = new WebAuthn();
+            $data     = $webAuthn->verifyRegistration($body, $challenge);
+        } catch (\RuntimeException $e) {
+            $res->json(['error' => 'Registration failed: ' . $e->getMessage()], 400);
+        }
+
+        Session::remove('webauthn_register_challenge');
+        Session::remove('webauthn_register_type');
+
+        $credModel = new WebAuthnCredential();
+
+        // Prevent duplicate credential IDs
+        if ($credModel->findByCredentialId($data['credentialId']) !== null) {
+            $res->json(['error' => 'This credential is already registered.'], 409);
+        }
+
+        $name = $type === 'platform' ? 'Windows Hello / Touch ID' : 'Security Key (YubiKey)';
+
+        $credModel->create([
+            'user_id'         => $userId,
+            'credential_id'   => $data['credentialId'],
+            'credential_type' => $type,
+            'public_key'      => $data['publicKeyPem'],
+            'sign_count'      => $data['signCount'],
+            'aaguid'          => $data['aaguid'],
+            'name'            => $name,
+            'created_at'      => date('Y-m-d H:i:s'),
+        ]);
+
+        (new AuditEvent())->recordSettingChange(
+            $req,
+            'profile',
+            'webauthn_credential_added',
+            '',
+            $type,
+            $userId
+        );
+
+        $res->json(['success' => true, 'message' => 'Security key registered successfully.']);
+    }
+
+    /**
+     * Return WebAuthn assertion challenge for login (second factor).
+     * GET /login/webauthn/challenge
+     * Requires a pending authenticated session (user has already entered their password).
+     */
+    public function webauthnLoginChallenge(Request $req, Response $res): void
+    {
+        if (!$this->hasPendingUser()) {
+            $res->json(['error' => 'No pending authentication session.'], 401);
+        }
+
+        $userId    = (int)Session::get('pending_user_id');
+        $credModel = new WebAuthnCredential();
+        $credIds   = $credModel->credentialIdsForUser($userId);
+
+        if (empty($credIds)) {
+            $res->json(['error' => 'No security keys registered.'], 400);
+        }
+
+        $webAuthn = new WebAuthn();
+        $result   = $webAuthn->buildAssertionOptions($credIds);
+
+        Session::set('webauthn_login_challenge', $result['challenge']);
+
+        $res->json($result['options']);
+    }
+
+    /**
+     * Verify WebAuthn assertion during login.
+     * POST /login/webauthn/verify (JSON body)
+     */
+    public function webauthnLoginVerify(Request $req, Response $res): void
+    {
+        $challenge = (string)Session::get('webauthn_login_challenge', '');
+        $userId    = (int)Session::get('pending_user_id', 0);
+
+        if ($challenge === '' || $userId === 0 || !$this->hasPendingUser()) {
+            $res->json(['error' => 'No pending WebAuthn challenge.'], 400);
+        }
+
+        $body = $req->json();
+        if (empty($body)) {
+            $res->json(['error' => 'Invalid JSON body.'], 400);
+        }
+
+        $credentialId = (string)($body['id'] ?? '');
+        $credModel    = new WebAuthnCredential();
+        $storedCred   = $credModel->findByCredentialId($credentialId);
+
+        if (!$storedCred || (int)$storedCred['user_id'] !== $userId) {
+            $res->json(['error' => 'Unknown credential.'], 401);
+        }
+
+        try {
+            $webAuthn    = new WebAuthn();
+            $newSignCount = $webAuthn->verifyAssertion(
+                $body,
+                $challenge,
+                (string)$storedCred['public_key'],
+                (int)$storedCred['sign_count']
+            );
+        } catch (\RuntimeException $e) {
+            $res->json(['error' => 'Verification failed: ' . $e->getMessage()], 401);
+        }
+
+        $credModel->updateSignCount((int)$storedCred['id'], $newSignCount);
+
+        Session::remove('webauthn_login_challenge');
+
+        $user = (new User())->findById($userId);
+        if (!$user || ($user['status'] ?? 'active') !== 'active') {
+            $res->json(['error' => 'User not found or suspended.'], 401);
+        }
+
+        // Finalize login and redirect via JSON response
+        $this->clearPendingAuth();
+        Session::regenerate();
+        Session::set('user_id', (int)$user['id']);
+        Session::set('user_email', $user['email']);
+        Session::set('user_name', $user['name']);
+        Session::set('user_role', $user['role']);
+
+        $res->json(['success' => true, 'redirect' => '/admin']);
     }
 
     public function showProfileSettings(Request $req, Response $res): void
@@ -350,13 +573,17 @@ class AuthController
             $res->redirect('/admin');
         }
 
-        if (Session::get('pending_mfa_type') !== 'totp' || !$this->hasPendingUser()) {
+        $mfaType = Session::get('pending_mfa_type');
+        if (!in_array($mfaType, ['totp', 'webauthn'], true) || !$this->hasPendingUser()) {
             $res->redirect('/login');
         }
 
         $html = View::renderWithLayout('auth/mfa_challenge', [
-            'title'       => 'Multi-factor authentication',
-            'pendingEmail' => (string)Session::get('pending_user_email', ''),
+            'title'          => 'Multi-factor authentication',
+            'pendingEmail'   => (string)Session::get('pending_user_email', ''),
+            'mfaType'        => $mfaType,
+            'hasWebAuthn'    => $mfaType === 'webauthn' || Session::get('pending_has_webauthn') === '1',
+            'hasTotp'        => $mfaType === 'totp',
         ]);
         $res->html($html);
     }
@@ -368,7 +595,7 @@ class AuthController
             $res->redirect('/login');
         }
 
-        if (Session::get('pending_mfa_type') !== 'totp' || !$this->hasPendingUser()) {
+        if (!in_array(Session::get('pending_mfa_type'), ['totp', 'webauthn'], true) || !$this->hasPendingUser()) {
             $res->redirect('/login');
         }
 
@@ -659,6 +886,8 @@ class AuthController
             'pending_mfa_required',
             'pending_mfa_type',
             'pending_mfa_secret',
+            'pending_has_webauthn',
+            'webauthn_login_challenge',
         ] as $key) {
             Session::remove($key);
         }
