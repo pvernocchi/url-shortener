@@ -21,6 +21,8 @@ A **self-hosted URL shortener** built for shared hosting — no Docker, no Node.
 - [Cron Jobs](#-cron-jobs)
 - [Testing](#-testing)
 - [Project Structure](#-project-structure)
+- [License](#-license)
+- [Contributing](#-contributing)
 
 ---
 
@@ -283,4 +285,14 @@ url-shortener/
 
 ## 📄 License
 
-This project is open-source. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**.
+
+You are free to use, study, modify, and distribute this software under the terms of the GPL-3.0. Any derivative work must also be distributed under the same licence.
+
+See the [LICENSE](LICENSE) file for the full licence text, or visit [https://www.gnu.org/licenses/gpl-3.0.html](https://www.gnu.org/licenses/gpl-3.0.html).
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on reporting issues, suggesting features, and submitting pull requests.
