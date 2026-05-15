@@ -315,7 +315,7 @@ class LinkController
     private function ensureAdminCanManageExistingLinks(Response $res): void
     {
         if (!App::isAdmin()) {
-            Session::flash('error', 'Regular users can only create new shortened URLs.');
+            Session::flash('error', 'Access denied: Only administrators can manage existing links. You can create new links instead.');
             $res->redirect('/admin/links/create');
         }
     }

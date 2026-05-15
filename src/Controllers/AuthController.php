@@ -17,6 +17,8 @@ use App\Services\Mailer;
 
 class AuthController
 {
+    private const SIGNUP_INVITATION_TTL_SECONDS = 86400;
+
     public function showLogin(Request $req, Response $res): void
     {
         if (Session::has('user_id')) {
@@ -143,7 +145,7 @@ class AuthController
         }
 
         $token      = bin2hex(random_bytes(32));
-        $expiresAt  = date('Y-m-d H:i:s', time() + 86400);
+        $expiresAt  = date('Y-m-d H:i:s', time() + self::SIGNUP_INVITATION_TTL_SECONDS);
         $inviteModel = new SignupInvitation();
         $inviteModel->create([
             'name'       => $name,
