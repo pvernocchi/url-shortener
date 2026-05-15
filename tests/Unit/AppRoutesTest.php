@@ -33,6 +33,12 @@ class AppRoutesTest extends TestCase
         $this->assertArrayHasKey('POST /signup', $routeMap);
         $this->assertArrayHasKey('GET /signup/complete', $routeMap);
         $this->assertArrayHasKey('POST /signup/complete', $routeMap);
+        $this->assertArrayHasKey('GET /login/mfa', $routeMap);
+        $this->assertArrayHasKey('POST /login/mfa', $routeMap);
+        $this->assertArrayHasKey('GET /login/mfa/setup', $routeMap);
+        $this->assertArrayHasKey('POST /login/mfa/setup', $routeMap);
+        $this->assertArrayHasKey('GET /admin/security', $routeMap);
+        $this->assertArrayHasKey('POST /admin/security', $routeMap);
         $this->assertArrayHasKey('GET /admin/users', $routeMap);
         $this->assertArrayHasKey('POST /admin/users/{id}/promote', $routeMap);
     }

@@ -210,6 +210,14 @@ class InstallController
             $settingModel->set('site_name', $appName);
             $settingModel->set('allow_registration', '0');
             $settingModel->set('default_redirect_type', '302');
+            $settingModel->set('mfa_policy', 'optional');
+            $settingModel->set('mfa_allow_totp', '1');
+            $settingModel->set('mfa_allow_webauthn_platform', '1');
+            $settingModel->set('mfa_allow_webauthn_security_key', '1');
+            $settingModel->set('captcha_enabled', '0');
+            $settingModel->set('captcha_provider', 'recaptcha');
+            $settingModel->set('captcha_site_key', '');
+            $settingModel->set('captcha_secret_key', '');
             $settingModel->set('app_version', Upgrade::getCodeVersion());
         } catch (\Throwable $e) {
             // Non-fatal

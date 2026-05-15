@@ -68,7 +68,13 @@ class AdminController
         }
 
         $settingModel = new Setting();
-        $fields       = ['site_name', 'allow_registration', 'default_redirect_type'];
+        $fields       = [
+            'site_name',
+            'allow_registration',
+            'default_redirect_type',
+            'captcha_site_key',
+            'captcha_secret_key',
+        ];
 
         foreach ($fields as $field) {
             $value = $req->post($field);
@@ -76,6 +82,23 @@ class AdminController
                 $settingModel->set($field, (string)$value);
             }
         }
+
+        $mfaPolicy = (string)$req->post('mfa_policy', 'optional');
+        if (!in_array($mfaPolicy, ['optional', 'required'], true)) {
+            $mfaPolicy = 'optional';
+        }
+        $settingModel->set('mfa_policy', $mfaPolicy);
+
+        $captchaProvider = (string)$req->post('captcha_provider', 'recaptcha');
+        if (!in_array($captchaProvider, ['recaptcha', 'turnstile'], true)) {
+            $captchaProvider = 'recaptcha';
+        }
+        $settingModel->set('captcha_provider', $captchaProvider);
+
+        $settingModel->set('mfa_allow_totp', $req->post('mfa_allow_totp') === '1' ? '1' : '0');
+        $settingModel->set('mfa_allow_webauthn_platform', $req->post('mfa_allow_webauthn_platform') === '1' ? '1' : '0');
+        $settingModel->set('mfa_allow_webauthn_security_key', $req->post('mfa_allow_webauthn_security_key') === '1' ? '1' : '0');
+        $settingModel->set('captcha_enabled', $req->post('captcha_enabled') === '1' ? '1' : '0');
 
         Setting::clearCache();
         Session::flash('success', 'Settings updated successfully.');

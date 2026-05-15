@@ -101,11 +101,17 @@ class App
         // Auth
         $r->add('GET',  '/login',           [AuthController::class, 'showLogin']);
         $r->add('POST', '/login',           [AuthController::class, 'handleLogin']);
+        $r->add('GET',  '/login/mfa',       [AuthController::class, 'showMfaChallenge']);
+        $r->add('POST', '/login/mfa',       [AuthController::class, 'handleMfaChallenge']);
+        $r->add('GET',  '/login/mfa/setup', [AuthController::class, 'showMfaSetup']);
+        $r->add('POST', '/login/mfa/setup', [AuthController::class, 'handleMfaSetup']);
         $r->add('POST', '/logout',          [AuthController::class, 'handleLogout']);
         $r->add('GET',  '/signup',          [AuthController::class, 'showSignupRequest']);
         $r->add('POST', '/signup',          [AuthController::class, 'handleSignupRequest']);
         $r->add('GET',  '/signup/complete', [AuthController::class, 'showSignupComplete']);
         $r->add('POST', '/signup/complete', [AuthController::class, 'handleSignupComplete']);
+        $r->add('GET',  '/admin/security',  [AuthController::class, 'showSecuritySettings']);
+        $r->add('POST', '/admin/security',  [AuthController::class, 'updateSecuritySettings']);
 
         // Admin
         $r->add('GET',  '/admin',              [AdminController::class, 'dashboard']);
