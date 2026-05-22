@@ -6,7 +6,7 @@
         <!-- SMTP Configuration -->
         <div class="card shadow-sm mb-4">
             <div class="card-header">
-                <h6 class="mb-0"><i class="bi bi-envelope-gear me-2"></i>SMTP Configuration</h6>
+                <h6 class="mb-0"><i class="bi bi-envelope me-2"></i>SMTP Configuration</h6>
             </div>
             <div class="card-body p-4">
                 <form method="POST" action="/admin/settings/email">

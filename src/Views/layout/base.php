@@ -53,7 +53,7 @@
                 <a class="nav-link px-3 py-2" href="/admin/settings"><i class="bi bi-gear me-2"></i>Settings</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link px-3 py-2" href="/admin/settings/email"><i class="bi bi-envelope-gear me-2"></i>Email</a>
+                <a class="nav-link px-3 py-2" href="/admin/settings/email"><i class="bi bi-envelope me-2"></i>Email</a>
             </li>
             <li class="nav-item">
                 <a class="nav-link px-3 py-2" href="/admin/tokens"><i class="bi bi-key me-2"></i>API Tokens</a>
