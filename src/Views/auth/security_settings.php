@@ -152,9 +152,7 @@
 </div>
 
 <?php if (($totpAllowed ?? false) && !($totpEnabled ?? false) && ($totpProvisioningUri ?? '') !== ''): ?>
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"
-        integrity="sha384-OLBgp1GsljhM2TJ+sbHjaiH9txEUvgdDTAzHv2P24donTt6/529l+9Ua0vFImLlb"
-        crossorigin="anonymous"></script>
+<script src="/js/qrcode.min.js"></script>
 <script>
 (function () {
     var uri = <?= json_encode($totpProvisioningUri ?? '') ?>;
