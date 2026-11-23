@@ -97,17 +97,30 @@ class AdminUserController
             Session::flash('error', 'You cannot change your own role or status.');
             $res->redirect($back);
         }
-        if ($user['role'] === 'admin' && $role !== 'admin' && $userModel->countAdmins() <= 1) {
+        $outcome = $userModel->withAdminLock($id, function (?array $fresh, int $admins) use ($userModel, $id, $name, $email, $role, $status, &$user): string {
+            if ($fresh === null) {
+                return 'missing';
+            }
+            if ($fresh['role'] === 'admin' && $role !== 'admin' && $admins <= 1) {
+                return 'last_admin';
+            }
+            $user = $fresh;
+            $userModel->update($id, [
+                'name'   => $name,
+                'email'  => $email,
+                'role'   => $role,
+                'status' => $status,
+            ]);
+            return 'ok';
+        });
+        if ($outcome === 'missing') {
+            Session::flash('error', 'User not found.');
+            $res->redirect('/admin/users');
+        }
+        if ($outcome === 'last_admin') {
             Session::flash('error', 'Cannot demote the last admin.');
             $res->redirect($back);
         }
-
-        $userModel->update($id, [
-            'name'   => $name,
-            'email'  => $email,
-            'role'   => $role,
-            'status' => $status,
-        ]);
 
         $audit = new AuditEvent();
         foreach (['name' => $name, 'email' => $email, 'role' => $role, 'status' => $status] as $key => $value) {
@@ -169,13 +182,25 @@ class AdminUserController
         }
 
         $userModel = new User();
-        if ($user['role'] === 'admin' && $userModel->countAdmins() <= 1) {
+        $outcome = $userModel->withAdminLock($id, function (?array $fresh, int $admins) use ($userModel, $req, $id): string {
+            if ($fresh === null) {
+                return 'missing';
+            }
+            if ($fresh['role'] === 'admin' && $admins <= 1) {
+                return 'last_admin';
+            }
+            (new AuditEvent())->recordSettingChange($req, 'admin_user', 'deleted', (string)$fresh['email'], '[deleted]');
+            $userModel->delete($id);
+            return 'ok';
+        });
+        if ($outcome === 'missing') {
+            Session::flash('error', 'User not found.');
+            $res->redirect('/admin/users');
+        }
+        if ($outcome === 'last_admin') {
             Session::flash('error', 'Cannot delete the last admin.');
             $res->redirect('/admin/users');
         }
-
-        (new AuditEvent())->recordSettingChange($req, 'admin_user', 'deleted', (string)$user['email'], '[deleted]');
-        $userModel->delete($id);
 
         Session::flash('success', 'User deleted.');
         $res->redirect('/admin/users');
