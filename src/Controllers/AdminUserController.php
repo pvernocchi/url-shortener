@@ -247,6 +247,7 @@ class AdminUserController
         }
 
         (new User())->update((int)$user['id'], ['role' => 'admin']);
+        (new AuditEvent())->recordSettingChange($req, 'admin_user', 'role', (string)$user['role'], 'admin', (int)$user['id']);
         Session::flash('success', 'User promoted to admin.');
         $res->redirect('/admin/users');
     }
