@@ -210,6 +210,7 @@ class AdminUserController
             'token'      => $token,
             'expires_at' => date('Y-m-d H:i:s', time() + self::INVITATION_TTL),
         ]);
+        (new AuditEvent())->recordSettingChange($req, 'admin_user', 'invited', null, $email);
 
         $baseUrl  = rtrim((string)Config::get('app.url', ''), '/');
         $link     = $baseUrl . '/signup/complete?token=' . urlencode($token);
