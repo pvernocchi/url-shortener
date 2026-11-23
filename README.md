@@ -1,6 +1,6 @@
 # 🔗 URL Shortener
 
-[![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)](https://github.com/pvernocchi/url-shortener/releases)
+[![Version](https://img.shields.io/badge/version-0.2.1-blue.svg)](https://github.com/pvernocchi/url-shortener/releases)
 [![PHP](https://img.shields.io/badge/PHP-%3E%3D8.1-8892BF.svg?logo=php&logoColor=white)](https://www.php.net/)
 [![License](https://img.shields.io/github/license/pvernocchi/url-shortener)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](#-testing)
