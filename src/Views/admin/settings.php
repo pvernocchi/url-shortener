@@ -55,11 +55,11 @@
                     </div>
 
                     <hr class="my-4">
-                    <h6 class="fw-semibold mb-3">Login CAPTCHA</h6>
+                    <h6 class="fw-semibold mb-3">Login and signup CAPTCHA</h6>
                     <div class="form-check mb-3">
                         <input class="form-check-input" type="checkbox" name="captcha_enabled" id="captcha_enabled" value="1"
                                <?= ($settings['captcha_enabled'] ?? '0') === '1' ? 'checked' : '' ?>>
-                        <label class="form-check-label" for="captcha_enabled">Enable CAPTCHA on login</label>
+                        <label class="form-check-label" for="captcha_enabled">Enable CAPTCHA on login and signup</label>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Provider</label>

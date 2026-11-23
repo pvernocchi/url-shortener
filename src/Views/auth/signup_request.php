@@ -13,6 +13,15 @@
                         <label for="signup_email" class="form-label">Email address</label>
                         <input id="signup_email" type="email" name="email" class="form-control" required>
                     </div>
+                    <?php if (($captchaEnabled ?? false) && ($captchaSiteKey ?? '') !== ''): ?>
+                    <div class="mb-3">
+                        <?php if (($captchaProvider ?? 'recaptcha') === 'turnstile'): ?>
+                            <div class="cf-turnstile" data-sitekey="<?= e($captchaSiteKey) ?>"></div>
+                        <?php else: ?>
+                            <div class="g-recaptcha" data-sitekey="<?= e($captchaSiteKey) ?>"></div>
+                        <?php endif; ?>
+                    </div>
+                    <?php endif; ?>
                     <button type="submit" class="btn btn-primary w-100">
                         Request invitation
                     </button>
@@ -24,3 +33,10 @@
         </div>
     </div>
 </div>
+<?php if (($captchaEnabled ?? false) && ($captchaSiteKey ?? '') !== ''): ?>
+    <?php if (($captchaProvider ?? 'recaptcha') === 'turnstile'): ?>
+        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <?php else: ?>
+        <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <?php endif; ?>
+<?php endif; ?>
