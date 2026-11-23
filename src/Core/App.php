@@ -12,11 +12,13 @@ use App\Controllers\CronController;
 use App\Controllers\InstallController;
 use App\Controllers\LinkController;
 use App\Controllers\RedirectController;
+use App\Models\User;
 
 class App
 {
     private Router $router;
     private bool $autoMigrationChecked = false;
+    private static ?int $validatedAuthUserId = null;
 
     public function __construct()
     {
@@ -270,10 +272,26 @@ class App
     public static function requireAuth(): void
     {
         Session::start();
-        if (!Session::has('user_id')) {
-            $response = new Response();
-            $response->redirect('/login');
+        $userId = (int)Session::get('user_id', 0);
+        if ($userId <= 0) {
+            self::redirectToLogin();
         }
+
+        if (self::$validatedAuthUserId === $userId) {
+            return;
+        }
+
+        $user = (new User())->findById($userId);
+        if (!$user || ($user['status'] ?? 'active') !== 'active') {
+            Session::destroy();
+            self::$validatedAuthUserId = null;
+            self::redirectToLogin();
+        }
+
+        Session::set('user_role', (string)($user['role'] ?? 'user'));
+        Session::set('user_name', (string)($user['name'] ?? ''));
+        Session::set('user_email', (string)($user['email'] ?? ''));
+        self::$validatedAuthUserId = $userId;
     }
 
     public static function requireAdmin(): void
@@ -299,5 +317,11 @@ class App
     public static function isAdmin(): bool
     {
         return Session::get('user_role') === 'admin';
+    }
+
+    private static function redirectToLogin(): never
+    {
+        self::$validatedAuthUserId = null;
+        (new Response())->redirect('/login');
     }
 }
