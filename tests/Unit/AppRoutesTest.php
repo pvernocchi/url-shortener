@@ -43,5 +43,17 @@ class AppRoutesTest extends TestCase
         $this->assertArrayHasKey('POST /admin/profile', $routeMap);
         $this->assertArrayHasKey('GET /admin/users', $routeMap);
         $this->assertArrayHasKey('POST /admin/users/{id}/promote', $routeMap);
+        $this->assertArrayHasKey('POST /admin/users/invite', $routeMap);
+        $this->assertArrayHasKey('GET /admin/users/{id}/edit', $routeMap);
+        $this->assertArrayHasKey('POST /admin/users/{id}', $routeMap);
+        $this->assertArrayHasKey('POST /admin/users/{id}/password', $routeMap);
+        $this->assertArrayHasKey('POST /admin/users/{id}/delete', $routeMap);
+
+        $keys = array_keys($routeMap);
+        $this->assertLessThan(
+            array_search('POST /admin/users/{id}', $keys, true),
+            array_search('POST /admin/users/invite', $keys, true),
+            'Invite route must be registered before the generic user update route.'
+        );
     }
 }

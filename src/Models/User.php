@@ -53,6 +53,35 @@ class User
         return $this->db->fetchAll("SELECT * FROM `{$this->table}` ORDER BY `created_at` DESC");
     }
 
+    public function countAdmins(): int
+    {
+        $row = $this->db->fetch("SELECT COUNT(*) AS `c` FROM `{$this->table}` WHERE `role` = 'admin'");
+        return (int)($row['c'] ?? 0);
+    }
+
+    /**
+     * Run $fn inside a transaction that holds row locks on every admin row and
+     * on the target user, so admin-count checks and the following mutation are
+     * serialized against concurrent demotions/deletions.
+     * $fn receives the freshly locked user row (or null) and the admin count.
+     */
+    public function withAdminLock(int $id, callable $fn): mixed
+    {
+        $this->db->beginTransaction();
+        try {
+            $admins = $this->db->fetchAll(
+                "SELECT `id` FROM `{$this->table}` WHERE `role` = 'admin' ORDER BY `id` FOR UPDATE"
+            );
+            $user = $this->db->fetch("SELECT * FROM `{$this->table}` WHERE `id` = ? FOR UPDATE", [$id]);
+            $result = $fn($user, count($admins));
+            $this->db->commit();
+            return $result;
+        } catch (\Throwable $e) {
+            $this->db->rollback();
+            throw $e;
+        }
+    }
+
     public function delete(int $id): bool
     {
         return $this->db->delete($this->table, '`id` = ?', [$id]) > 0;
