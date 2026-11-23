@@ -62,7 +62,7 @@
 
 | Requirement | Details |
 |---|---|
-| 🐘 PHP | ≥ 8.1 with `pdo`, `pdo_mysql`, `json`, `mbstring` |
+| 🐘 PHP | ≥ 8.4 with `pdo`, `pdo_mysql`, `json`, `mbstring` |
 | 🗄️ Database | MySQL or MariaDB |
 | 🌐 Web server | URL rewriting (`mod_rewrite` on Apache / `try_files` on Nginx) |
 | 📁 Permissions | Write access to `config/`, `storage/logs/`, `storage/cache/` |
