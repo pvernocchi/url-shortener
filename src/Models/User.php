@@ -53,6 +53,12 @@ class User
         return $this->db->fetchAll("SELECT * FROM `{$this->table}` ORDER BY `created_at` DESC");
     }
 
+    public function countAdmins(): int
+    {
+        $row = $this->db->fetch("SELECT COUNT(*) AS `c` FROM `{$this->table}` WHERE `role` = 'admin'");
+        return (int)($row['c'] ?? 0);
+    }
+
     public function delete(int $id): bool
     {
         return $this->db->delete($this->table, '`id` = ?', [$id]) > 0;

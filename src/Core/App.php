@@ -138,6 +138,11 @@ class App
         $r->add('POST', '/admin/tokens/{id}/delete', [AdminTokenController::class, 'delete']);
         $r->add('GET',  '/admin/users',             [AdminUserController::class, 'index']);
         $r->add('POST', '/admin/users/{id}/promote', [AdminUserController::class, 'promote']);
+        $r->add('POST', '/admin/users/invite',      [AdminUserController::class, 'invite']);
+        $r->add('GET',  '/admin/users/{id}/edit',   [AdminUserController::class, 'edit']);
+        $r->add('POST', '/admin/users/{id}',        [AdminUserController::class, 'update']);
+        $r->add('POST', '/admin/users/{id}/password', [AdminUserController::class, 'resetPassword']);
+        $r->add('POST', '/admin/users/{id}/delete', [AdminUserController::class, 'delete']);
         $r->add('POST', '/admin/upgrade',      [AdminController::class, 'runUpgrade']);
 
         // Links
