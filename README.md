@@ -1,73 +1,83 @@
+<div align="center">
+
 # 🔗 URL Shortener
+
+**A self-hosted URL shortener built for shared hosting — no Docker, no Node.js, no Redis.**
 
 [![Version](https://img.shields.io/badge/version-0.2.1-blue.svg)](https://github.com/pvernocchi/url-shortener/releases)
 [![PHP](https://img.shields.io/badge/PHP-%3E%3D8.1-8892BF.svg?logo=php&logoColor=white)](https://www.php.net/)
-[![License](https://img.shields.io/github/license/pvernocchi/url-shortener)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](#-testing)
+[![MySQL](https://img.shields.io/badge/MySQL%20%2F%20MariaDB-supported-4479A1.svg?logo=mysql&logoColor=white)](https://www.mysql.com/)
+[![License: GPL v3](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
+[![OpenAPI](https://img.shields.io/badge/OpenAPI-3.0-6BA539.svg?logo=openapiinitiative&logoColor=white)](openapi.yaml)
+[![Tests](https://img.shields.io/badge/tests-PHPUnit%2010-brightgreen.svg)](#-testing)
+[![Copilot Studio Agent](https://img.shields.io/badge/Copilot%20Studio-agent%20available-742774.svg)](https://github.com/pvernocchi/vrno-copilot-studio-agent)
 
-A **self-hosted URL shortener** built for shared hosting — no Docker, no Node.js, no Redis. Drop it on any PHP 8.1+ / MySQL host and go.
+[Features](#-features) • [Quick Start](#-quick-start) • [REST API](#-rest-api) • [Copilot Studio Agent](#-copilot-studio-agent) • [Security](#️-security) • [Contributing](#-contributing)
+
+</div>
 
 ---
 
 ## 📑 Table of Contents
 
-- [Features](#-features)
-- [Requirements](#-requirements)
-- [Installation](#-installation)
-- [Configuration](#-configuration)
-- [Admin Panel](#-admin-panel)
-- [REST API](#-rest-api)
-- [Security](#-security)
-- [Cron Jobs](#-cron-jobs)
-- [Testing](#-testing)
-- [Project Structure](#-project-structure)
-- [License](#-license)
-- [Contributing](#-contributing)
+- [✨ Features](#-features)
+- [📋 Requirements](#-requirements)
+- [🚀 Quick Start](#-quick-start)
+- [⚙️ Configuration](#️-configuration)
+- [🖥️ Admin Panel](#️-admin-panel)
+- [🔌 REST API](#-rest-api)
+- [🤖 Copilot Studio Agent](#-copilot-studio-agent)
+- [🛡️ Security](#️-security)
+- [⏰ Cron Jobs](#-cron-jobs)
+- [📦 Deployment & Releases](#-deployment--releases)
+- [🧪 Testing](#-testing)
+- [📂 Project Structure](#-project-structure)
+- [🤝 Contributing](#-contributing)
+- [📄 License](#-license)
 
 ---
 
 ## ✨ Features
 
-| Feature | Details |
-|---|---|
-| 🔗 Short links | Auto-generated or custom codes, 301/302 redirects |
-| 📊 Click analytics | Per-link click counts with IP anonymisation and configurable retention |
-| 👥 Multi-user | Roles: `admin` / `user`; optional open registration or invite-only |
-| 🔐 MFA / 2FA | TOTP (Google / Microsoft Authenticator), passkeys, security keys |
-| 🤖 CAPTCHA | Google reCAPTCHA v2 or Cloudflare Turnstile on the login page |
-| 📧 SMTP email | Native PHP socket client — no third-party mail library required |
-| 🛡️ Rate limiting | Separate limits for link creation and redirects, per IP |
-| ⏰ Link expiry | Set `expires_at` and/or `max_clicks` per link |
-| 🔑 REST API | Bearer-token authenticated, OpenAPI 3.0 spec included |
-| 🖥️ Web installer | Step-by-step wizard writes `config/config.php` for you |
-| 💾 DB backups | One-click database export from the admin panel |
-| 🏥 Diagnostics | Environment / health check page in the admin panel |
+| | Feature | Details |
+|---|---|---|
+| 🔗 | **Short links** | Auto-generated or custom codes, 301/302 redirects |
+| ⏳ | **Link expiry** | Per-link `expires_at` and/or `max_clicks` |
+| 📊 | **Click analytics** | Per-link stats, IP anonymisation, configurable retention |
+| 👥 | **Multi-user** | `admin` / `user` roles, open registration or invite-only signup |
+| 🔐 | **MFA / 2FA** | TOTP authenticator apps, passkeys and hardware security keys (WebAuthn) |
+| 🤖 | **CAPTCHA** | Google reCAPTCHA v2 or Cloudflare Turnstile |
+| 📧 | **SMTP email** | Built-in PHP socket client — no mail library needed |
+| 🛡️ | **Rate limiting** | Per-IP limits for link creation and redirects, login lockout |
+| 🔑 | **REST API** | Bearer-token auth with `read` / `write` scopes, OpenAPI 3.0 spec |
+| 🖥️ | **Web installer** | Step-by-step wizard writes `config/config.php` |
+| 🔄 | **Auto-migrations** | SQL migrations applied automatically, in-app upgrade support |
+| 💾 | **DB backups** | One-click export from the admin panel |
+| 🏥 | **Diagnostics** | Environment health-check page |
+| 🧾 | **Audit events** | Security-relevant actions are recorded |
 
 ---
 
 ## 📋 Requirements
 
-- **PHP** ≥ 8.1 with extensions: `pdo`, `pdo_mysql`, `json`, `mbstring`
-- **MySQL** (or MariaDB) database
-- A web server with URL rewriting (`mod_rewrite` on Apache / `try_files` on Nginx)
-- Write access to `config/`, `storage/logs/`, and `storage/cache/`
+| Requirement | Details |
+|---|---|
+| 🐘 PHP | ≥ 8.1 with `pdo`, `pdo_mysql`, `json`, `mbstring` |
+| 🗄️ Database | MySQL or MariaDB |
+| 🌐 Web server | URL rewriting (`mod_rewrite` on Apache / `try_files` on Nginx) |
+| 📁 Permissions | Write access to `config/`, `storage/logs/`, `storage/cache/` |
+| 🎼 Composer | To install dependencies |
 
 ---
 
-## 🚀 Installation
+## 🚀 Quick Start
 
-### 1 — Upload files
+### 1️⃣ Upload files
 
-Upload the repository to your web root (or a subdirectory). Make sure the document root points to the `public/` folder **or** that `.htaccess` rewrites are active at the project root.
+Upload the repository to your web root (or a subdirectory). Point the document root at `public/`, **or** rely on the bundled root `.htaccess` rewrite.
 
-```
-# Apache — project root .htaccess (already included)
-RewriteEngine On
-RewriteCond %{REQUEST_URI} !^/public/
-RewriteRule ^(.*)$ /public/$1 [L,QSA]
-```
-
-For Nginx, add to your server block:
+<details>
+<summary>🌐 Nginx example</summary>
 
 ```nginx
 root /path/to/url-shortener/public;
@@ -78,24 +88,26 @@ location / {
 }
 ```
 
-### 2 — Install Composer dependencies
+</details>
+
+### 2️⃣ Install dependencies
 
 ```bash
 composer install --no-dev --optimize-autoloader
 ```
 
-### 3 — Run the web installer
+### 3️⃣ Run the web installer
 
-Navigate to `https://your-domain.com/install` in your browser. The wizard will:
+Open `https://your-domain.com/install`. The wizard will:
 
-1. Check environment requirements (PHP version, extensions, writable directories).
-2. Collect database credentials, app URL, and admin account details.
-3. Run all database migrations automatically.
-4. Write `config/config.php` for you.
+1. ✅ Check environment requirements
+2. 🗄️ Collect database credentials, app URL and admin account
+3. 🔄 Run all database migrations
+4. 📝 Write `config/config.php`
 
-### 4 — Protect the config directory (Apache)
+### 4️⃣ Protect the config directory (Apache)
 
-After installation add a `.htaccess` inside `config/` to deny direct HTTP access:
+Add `config/.htaccess`:
 
 ```apache
 Deny from all
@@ -105,75 +117,51 @@ Deny from all
 
 ## ⚙️ Configuration
 
-All settings live in `config/config.php` (generated by the installer). A fully-annotated sample is provided at [`config/config.sample.php`](config/config.sample.php).
+Settings live in `config/config.php` (generated by the installer). A fully annotated sample is in [`config/config.sample.php`](config/config.sample.php).
 
-Key sections:
+| Section | Purpose | Example keys |
+|---|---|---|
+| `app` | General | `name`, `url`, `secret`, `debug`, `auto_migrate` |
+| `db` | Database | `host`, `port`, `name`, `user`, `pass`, `prefix` |
+| `security` | Limits & URL policy | `rate_limit_create`, `rate_limit_redirect`, `login_max_attempts`, `login_lockout_mins`, `allowed_protocols`, `blocked_domains` |
+| `captcha` | Bot protection | provider, site key, secret key |
+| `analytics` | Click tracking | IP anonymisation, retention |
+| `api` | REST API | enable/disable |
+| `mail` | SMTP | host, port, credentials |
 
-```php
-'app' => [
-    'name'         => 'URL Shortener',
-    'url'          => 'https://yourdomain.com',  // no trailing slash
-    'secret'       => 'change-me-32-char-secret-key',
-    'debug'        => false,
-    'auto_migrate' => true,   // run pending migrations on every request
-],
-'db' => [
-    'host'   => 'localhost',
-    'port'   => 3306,
-    'name'   => 'my_db',
-    'user'   => 'my_user',
-    'pass'   => 'my_pass',
-    'prefix' => 'us_',
-],
-'security' => [
-    'rate_limit_create'   => 10,   // link creations per hour per IP
-    'rate_limit_redirect' => 300,  // redirects per hour per IP
-    'login_max_attempts'  => 5,
-    'login_lockout_mins'  => 15,
-],
-```
-
-Additional settings (CAPTCHA, analytics, SMTP, API) can be managed directly in the **Admin → Settings** and **Admin → Settings → Email** pages after installation.
+> 💡 CAPTCHA, analytics, SMTP and API options can also be managed from **Admin → Settings** after installation.
 
 ---
 
 ## 🖥️ Admin Panel
 
-Access the admin panel at `/admin` after logging in.
-
 | Page | Path | Description |
 |---|---|---|
-| Dashboard | `/admin` | Overview stats |
-| Links | `/admin/links` | Manage all short links |
-| Users | `/admin/users` | Create / manage users |
-| API Tokens | `/admin/tokens` | Issue and revoke bearer tokens |
-| Analytics | `/admin/analytics` | Click analytics |
-| Settings | `/admin/settings` | Global app settings & MFA policy |
-| Email | `/admin/settings/email` | SMTP configuration & test send |
-| Backup | `/admin/backup` | Export database |
-| Diagnostics | `/admin/diagnostics` | Environment health check |
+| 📈 Dashboard | `/admin` | Overview stats |
+| 🔗 Links | `/admin/links` | Create, edit, toggle, delete links |
+| 📊 Analytics | `/admin/links/{id}/analytics` | Per-link click analytics |
+| 👥 Users | `/admin/users` | Create, invite, promote, reset passwords |
+| 🔑 API Tokens | `/admin/tokens` | Issue, revoke and delete bearer tokens |
+| ⚙️ Settings | `/admin/settings` | Global settings & MFA policy |
+| 📧 Email | `/admin/settings/email` | SMTP config & test send |
+| 🙍 Profile | `/admin/profile` | Personal settings |
+| 🔐 Security | `/admin/security` | TOTP, passkeys, security keys |
+| 💾 Backup | `/admin/backup` | Export database |
+| 🏥 Diagnostics | `/admin/diagnostics` | Environment health check |
 
 ---
 
 ## 🔌 REST API
 
-The API is enabled by default. Admins issue bearer tokens from **Admin → API Tokens → New Token**.
+The API is enabled by default. Issue a token from **Admin → API Tokens → New Token**.
 
-> ⚠️ Tokens are shown **once** in plaintext after creation. Copy it immediately — only the hash is stored.
+> ⚠️ Tokens are shown **once** in plaintext. Copy it immediately — only the hash is stored.
 
-### Base URL
+**Base URL:** `https://your-domain.com/api/v1`
 
-```
-https://your-domain.com/api/v1
-```
+**Auth header:** `Authorization: Bearer usk_your_token_here`
 
-### Authentication
-
-```http
-Authorization: Bearer usk_your_token_here
-```
-
-### Endpoints
+### 📡 Endpoints
 
 | Method | Path | Scope | Description |
 |---|---|---|---|
@@ -182,7 +170,9 @@ Authorization: Bearer usk_your_token_here
 | `GET` | `/links/{code}` | `read` | Get a link by short code |
 | `DELETE` | `/links/{id}` | `write` | Delete a link by ID |
 
-### Example — create a link
+### 🧪 Examples
+
+**Create a link**
 
 ```bash
 curl -X POST "https://your-domain.com/api/v1/links" \
@@ -196,65 +186,75 @@ curl -X POST "https://your-domain.com/api/v1/links" \
   }'
 ```
 
-### Example — list links
+**List links**
 
 ```bash
 curl "https://your-domain.com/api/v1/links?page=1" \
   -H "Authorization: Bearer usk_your_token_here"
 ```
 
-A full machine-readable **OpenAPI 3.0** specification is at [`openapi.yaml`](openapi.yaml). View it at [editor.swagger.io](https://editor.swagger.io) or with any OpenAPI-compatible tool.
+📘 The full **OpenAPI 3.0** spec is in [`openapi.yaml`](openapi.yaml) — open it in [Swagger Editor](https://editor.swagger.io) or any OpenAPI tool.
+
+---
+
+## 🤖 Copilot Studio Agent
+
+Prefer chatting to curl? A **Microsoft Copilot Studio agent** (Power Platform solution) built on this project's REST API lets you work with your short links using natural language.
+
+| | |
+|---|---|
+| 📦 Repository | [**pvernocchi/vrno-copilot-studio-agent**](https://github.com/pvernocchi/vrno-copilot-studio-agent) |
+| 🔌 Integrates with | The [REST API](#-rest-api) described by [`openapi.yaml`](openapi.yaml) |
+| 🔑 Needs | Your instance's base URL and an API token (`read` / `write` scopes) |
+
+👉 See the agent repository for setup and usage instructions.
 
 ---
 
 ## 🛡️ Security
 
-### Multi-Factor Authentication (MFA)
-
-- Configure the global MFA policy (`optional` or `required`) in **Admin → Settings**.
-- Users enrol in **Profile → Security** (TOTP supported by Google Authenticator, Microsoft Authenticator, and compatible apps).
-- Passkeys and hardware security keys are also supported.
-
-### CAPTCHA
-
-Enable CAPTCHA on the login page via **Admin → Settings**:
-
-- **Google reCAPTCHA v2** — set your site key and secret key.
-- **Cloudflare Turnstile** — set your site key and secret key.
-
-### Rate Limiting
-
-- **Link creation**: configurable per-IP limit (default 10/hour).
-- **Redirects**: configurable per-IP limit (default 300/hour).
-- Login brute-force protection: account lockout after N failed attempts.
-
-### Blocked Domains & Protocols
-
-The `security.blocked_domains` array and `security.allowed_protocols` config keys let you restrict which URLs can be shortened.
+| Area | What you get |
+|---|---|
+| 🔐 **MFA** | Global policy `optional` or `required` in **Admin → Settings**; users enrol in **Admin → Security** (TOTP, passkeys, security keys) |
+| 🤖 **CAPTCHA** | Google reCAPTCHA v2 or Cloudflare Turnstile — set site and secret keys |
+| 🚦 **Rate limiting** | Per-IP link creation (default 10/h) and redirects (default 300/h) |
+| 🔒 **Brute-force protection** | Account lockout after N failed logins |
+| 🧱 **CSRF protection** | Token checks on state-changing forms |
+| 🚫 **URL policy** | `security.blocked_domains` and `security.allowed_protocols` restrict what can be shortened |
+| 🔑 **API tokens** | Stored hashed, scoped, revocable |
 
 ---
 
 ## ⏰ Cron Jobs
 
-Some background tasks (e.g. expiring links, purging old analytics) require a cron job. The cron key is generated during installation and stored in `config/config.php`.
+Housekeeping is triggered via HTTP using the cron key stored in `config/config.php` (`cron.key`).
 
-Add a cron entry on your server (replace the URL and key):
+| Endpoint | Purpose |
+|---|---|
+| `/cron/cleanup?key=YOUR_CRON_KEY` | Purge expired data |
+| `/cron/upgrade?key=YOUR_CRON_KEY` | Apply pending upgrades |
 
 ```cron
-*/15 * * * * curl -s "https://your-domain.com/cron?key=YOUR_CRON_KEY" > /dev/null
+*/15 * * * * curl -s "https://your-domain.com/cron/cleanup?key=YOUR_CRON_KEY" > /dev/null
 ```
+
+---
+
+## 📦 Deployment & Releases
+
+| Workflow | File | Trigger | Description |
+|---|---|---|---|
+| 🚚 Deploy via FTP | [`ftp-deploy.yml`](.github/workflows/ftp-deploy.yml) | Manual / reusable | Installs production dependencies and deploys over FTP |
+| 🏷️ Create Release | [`new-release.yml`](.github/workflows/new-release.yml) | Manual | Bumps [`VERSION`](VERSION) and publishes a release |
 
 ---
 
 ## 🧪 Testing
 
-The test suite uses **PHPUnit 10**.
+The suite uses **PHPUnit 10** (unit tests plus a redirect integration test).
 
 ```bash
-# Install dev dependencies first
 composer install
-
-# Run all tests
 ./vendor/bin/phpunit --configuration tests/phpunit.xml
 ```
 
@@ -262,37 +262,28 @@ composer install
 
 ## 📂 Project Structure
 
-```
-url-shortener/
-├── config/              # config.php (generated) + config.sample.php
-├── migrations/          # SQL migration files (run automatically)
-├── public/              # Web root — index.php front controller
-├── src/
-│   ├── Controllers/     # Request handlers
-│   ├── Core/            # App, Router, Database, Session, Config, …
-│   ├── Models/          # Database models
-│   ├── Services/        # Mailer, UrlValidator, …
-│   └── Views/           # PHP templates (Bootstrap 5)
-├── storage/
-│   ├── cache/           # Runtime cache (must be writable)
-│   └── logs/            # Application & SMTP logs (must be writable)
-├── tests/               # PHPUnit test suite
-├── openapi.yaml         # OpenAPI 3.0 API specification
-└── composer.json
-```
-
----
-
-## 📄 License
-
-This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**.
-
-You are free to use, study, modify, and distribute this software under the terms of the GPL-3.0. Any derivative work must also be distributed under the same licence.
-
-See the [LICENSE](LICENSE) file for the full licence text, or visit [https://www.gnu.org/licenses/gpl-3.0.html](https://www.gnu.org/licenses/gpl-3.0.html).
+| Path | Description |
+|---|---|
+| `config/` | `config.php` (generated) + `config.sample.php` |
+| `migrations/` | Ordered SQL migrations (applied automatically) |
+| `public/` | Web root — `index.php` front controller |
+| `src/Controllers/` | Admin, auth, API, link, redirect, cron & installer handlers |
+| `src/Core/` | App, Router, Database, Session, Config, CSRF, rate limiter, upgrade |
+| `src/Models/` | Link, User, ApiToken, ClickEvent, AuditEvent, settings, WebAuthn… |
+| `src/Services/` | Mailer, TOTP, WebAuthn, CAPTCHA, analytics, URL validator, slug generator |
+| `src/Views/` | PHP templates (Bootstrap 5) |
+| `storage/` | Writable `cache/` and `logs/` |
+| `tests/` | PHPUnit suite |
+| `openapi.yaml` | OpenAPI 3.0 API specification |
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on reporting issues, suggesting features, and submitting pull requests.
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on reporting issues, suggesting features and submitting pull requests.
+
+---
+
+## 📄 License
+
+Licensed under the **GNU General Public License v3.0 (GPL-3.0)**. Derivative works must be distributed under the same licence. See [LICENSE](LICENSE) or <https://www.gnu.org/licenses/gpl-3.0.html>.
