@@ -3,7 +3,7 @@
     "description": "Self-hosted URL shortener for shared hosting",
     "type": "project",
     "require": {
-        "php": ">=8.4",
+        "php": ">=8.4.1",
         "ext-pdo": "*",
         "ext-pdo_mysql": "*",
         "ext-json": "*",
