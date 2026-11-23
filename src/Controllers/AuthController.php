@@ -705,7 +705,18 @@ class AuthController
             $res->redirect('/admin');
         }
 
-        $html = View::renderWithLayout('auth/signup_request', ['title' => 'Create Account']);
+        $settingModel = new Setting();
+        $captchaProvider = strtolower((string)$settingModel->get('captcha_provider', (string)Config::get('captcha.provider', 'recaptcha')));
+        if (!in_array($captchaProvider, ['recaptcha', 'turnstile'], true)) {
+            $captchaProvider = 'recaptcha';
+        }
+
+        $html = View::renderWithLayout('auth/signup_request', [
+            'title'           => 'Create Account',
+            'captchaEnabled'  => $settingModel->get('captcha_enabled', Config::get('captcha.enabled', false) ? '1' : '0') === '1',
+            'captchaProvider' => $captchaProvider,
+            'captchaSiteKey'  => (string)$settingModel->get('captcha_site_key', (string)Config::get('captcha.site_key', '')),
+        ]);
         $res->html($html);
     }
 
@@ -725,6 +736,23 @@ class AuthController
         }
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             Session::flash('error', 'Please provide a valid email address.');
+            $res->redirect('/signup');
+        }
+
+        $settingModel = new Setting();
+        $captchaProvider = strtolower((string)$settingModel->get('captcha_provider', (string)Config::get('captcha.provider', 'recaptcha')));
+        if (!in_array($captchaProvider, ['recaptcha', 'turnstile'], true)) {
+            $captchaProvider = 'recaptcha';
+        }
+        $captchaEnabled = $settingModel->get('captcha_enabled', Config::get('captcha.enabled', false) ? '1' : '0') === '1';
+        $captchaSecret = (string)$settingModel->get('captcha_secret_key', (string)Config::get('captcha.secret_key', ''));
+        $captchaToken = $captchaProvider === 'turnstile'
+            ? (string)$req->post('cf-turnstile-response', '')
+            : (string)$req->post('g-recaptcha-response', '');
+
+        $captchaVerifier = new CaptchaVerifier();
+        if (!$captchaVerifier->verify($captchaEnabled, $captchaProvider, $captchaSecret, $captchaToken, $req->ip())) {
+            Session::flash('error', 'CAPTCHA validation failed. Please try again.');
             $res->redirect('/signup');
         }
 
