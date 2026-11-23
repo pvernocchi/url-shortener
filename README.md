@@ -5,11 +5,11 @@
 **A self-hosted URL shortener built for shared hosting — no Docker, no Node.js, no Redis.**
 
 [![Version](https://img.shields.io/badge/version-0.2.1-blue.svg)](https://github.com/pvernocchi/url-shortener/releases)
-[![PHP](https://img.shields.io/badge/PHP-%3E%3D8.1-8892BF.svg?logo=php&logoColor=white)](https://www.php.net/)
+[![PHP](https://img.shields.io/badge/PHP-%3E%3D8.4-8892BF.svg?logo=php&logoColor=white)](https://www.php.net/)
 [![MySQL](https://img.shields.io/badge/MySQL%20%2F%20MariaDB-supported-4479A1.svg?logo=mysql&logoColor=white)](https://www.mysql.com/)
 [![License: GPL v3](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 [![OpenAPI](https://img.shields.io/badge/OpenAPI-3.0-6BA539.svg?logo=openapiinitiative&logoColor=white)](openapi.yaml)
-[![Tests](https://img.shields.io/badge/tests-PHPUnit%2010-brightgreen.svg)](#-testing)
+[![Tests](https://img.shields.io/badge/tests-PHPUnit%2013-brightgreen.svg)](#-testing)
 [![Copilot Studio Agent](https://img.shields.io/badge/Copilot%20Studio-agent%20available-742774.svg)](https://github.com/pvernocchi/vrno-copilot-studio-agent)
 
 [Features](#-features) • [Quick Start](#-quick-start) • [REST API](#-rest-api) • [Copilot Studio Agent](#-copilot-studio-agent) • [Security](#️-security) • [Contributing](#-contributing)
@@ -62,7 +62,7 @@
 
 | Requirement | Details |
 |---|---|
-| 🐘 PHP | ≥ 8.1 with `pdo`, `pdo_mysql`, `json`, `mbstring` |
+| 🐘 PHP | ≥ 8.4 with `pdo`, `pdo_mysql`, `json`, `mbstring` |
 | 🗄️ Database | MySQL or MariaDB |
 | 🌐 Web server | URL rewriting (`mod_rewrite` on Apache / `try_files` on Nginx) |
 | 📁 Permissions | Write access to `config/`, `storage/logs/`, `storage/cache/` |
